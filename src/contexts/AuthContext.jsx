@@ -1,25 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AuthUser } from '../types';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-interface AuthContextType {
-  user: AuthUser | null;
-  login: (user: AuthUser) => void;
-  logout: () => void;
-  isLoading: boolean;
-}
+const AuthContext = createContext(undefined);
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on app startup
     const storedUser = localStorage.getItem('finSaarthiUser');
     if (storedUser) {
       try {
@@ -32,7 +19,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (userData: AuthUser) => {
+  const login = (userData) => {
     setUser(userData);
     localStorage.setItem('finSaarthiUser', JSON.stringify(userData));
   };

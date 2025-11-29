@@ -1,24 +1,15 @@
 import React from 'react';
-import { Scholarship } from '../types';
 import { Calendar, IndianRupee, Building } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-interface ScholarshipCardProps {
-  scholarship: Scholarship;
-  onApply?: () => void;
-  onView?: () => void;
-  showActions?: boolean;
-  hasApplied?: boolean;
-}
-
-export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
+export const ScholarshipCard = ({
   scholarship,
   onApply,
   onView,
   showActions = true,
   hasApplied = false,
 }) => {
-  const formatAmount = (amount: number) => {
+  const formatAmount = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -88,7 +79,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
           {scholarship.description}
         </p>
 
-        {/* Eligibility Preview */}
+        {/* Eligibility */}
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-900 mb-2">
             Key Eligibility:
@@ -137,6 +128,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
             >
               View Details
             </button>
+
             {onApply && !isExpired() && (
               <button
                 onClick={onApply}

@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { FinSaarthiData, User, Scholarship, Application } from '../types';
 
 const STORAGE_KEY = 'finSaarthiData';
 
-// Initial data structure
-const initialData: FinSaarthiData = {
+// Initial data (same structure, but without TypeScript types)
+const initialData = {
   users: [
     {
       id: 'admin-1',
@@ -78,7 +77,7 @@ const initialData: FinSaarthiData = {
 };
 
 export const useLocalStorage = () => {
-  const [data, setData] = useState<FinSaarthiData>(() => {
+  const [data, setData] = useState(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : initialData;
@@ -88,7 +87,6 @@ export const useLocalStorage = () => {
     }
   });
 
-  // Save data to localStorage whenever data changes
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -97,127 +95,136 @@ export const useLocalStorage = () => {
     }
   }, [data]);
 
-  // User operations
-  const addUser = (user: Omit<User, 'id' | 'createdAt'>) => {
-    const newUser: User = {
+  // USER OPERATIONS
+  const addUser = (user) => {
+    const newUser = {
       ...user,
       id: `user-${Date.now()}`,
       createdAt: new Date().toISOString(),
     };
+
     setData(prev => ({
       ...prev,
       users: [...prev.users, newUser]
     }));
+
     return newUser;
   };
 
-  const getUserByCredentials = (email: string, password: string) => {
+  const getUserByCredentials = (email, password) => {
     return data.users.find(user => user.email === email && user.password === password);
   };
 
-  const getUserById = (id: string) => {
+  const getUserById = (id) => {
     return data.users.find(user => user.id === id);
   };
 
-  const updateUser = (id: string, updates: Partial<User>) => {
+  const updateUser = (id, updates) => {
     setData(prev => ({
       ...prev,
-      users: prev.users.map(user => 
+      users: prev.users.map(user =>
         user.id === id ? { ...user, ...updates } : user
       )
     }));
   };
 
-  // Scholarship operations
-  const addScholarship = (scholarship: Omit<Scholarship, 'id' | 'createdAt'>) => {
-    const newScholarship: Scholarship = {
-      ...scholarship,
+  // SCHOLARSHIPS
+  const addScholarship = (sch) => {
+    const newScholarship = {
+      ...sch,
       id: `sch-${Date.now()}`,
       createdAt: new Date().toISOString(),
     };
+
     setData(prev => ({
       ...prev,
       scholarships: [...prev.scholarships, newScholarship]
     }));
+
     return newScholarship;
   };
 
-  const updateScholarship = (id: string, updates: Partial<Scholarship>) => {
+  const updateScholarship = (id, updates) => {
     setData(prev => ({
       ...prev,
-      scholarships: prev.scholarships.map(sch => 
-        sch.id === id ? { ...sch, ...updates } : sch
+      scholarships: prev.scholarships.map(s =>
+        s.id === id ? { ...s, ...updates } : s
       )
     }));
   };
 
-  const deleteScholarship = (id: string) => {
+  const deleteScholarship = (id) => {
     setData(prev => ({
       ...prev,
-      scholarships: prev.scholarships.filter(sch => sch.id !== id),
+      scholarships: prev.scholarships.filter(s => s.id !== id),
       applications: prev.applications.filter(app => app.scholarshipId !== id)
     }));
   };
 
   const getActiveScholarships = () => {
-    return data.scholarships.filter(sch => sch.isActive);
+    return data.scholarships.filter(s => s.isActive);
   };
 
-  const getScholarshipById = (id: string) => {
-    return data.scholarships.find(sch => sch.id === id);
+  const getScholarshipById = (id) => {
+    return data.scholarships.find(s => s.id === id);
   };
 
-  // Application operations
-  const addApplication = (application: Omit<Application, 'id' | 'submittedAt'>) => {
-    const newApplication: Application = {
-      ...application,
+  // APPLICATION OPERATIONS
+  const addApplication = (app) => {
+    const newApplication = {
+      ...app,
       id: `app-${Date.now()}`,
       submittedAt: new Date().toISOString(),
     };
+
     setData(prev => ({
       ...prev,
       applications: [...prev.applications, newApplication]
     }));
+
     return newApplication;
   };
 
-  const updateApplicationStatus = (id: string, status: Application['status'], adminNotes?: string) => {
+  const updateApplicationStatus = (id, status, adminNotes) => {
     setData(prev => ({
       ...prev,
-      applications: prev.applications.map(app => 
-        app.id === id ? { ...app, status, adminNotes } : app
+      applications: prev.applications.map(a =>
+        a.id === id ? { ...a, status, adminNotes } : a
       )
     }));
   };
 
-  const getApplicationsByStudent = (studentId: string) => {
+  const getApplicationsByStudent = (studentId) => {
     return data.applications.filter(app => app.studentId === studentId);
   };
 
-  const getApplicationById = (id: string) => {
+  const getApplicationById = (id) => {
     return data.applications.find(app => app.id === id);
   };
 
-  const hasUserApplied = (studentId: string, scholarshipId: string) => {
-    return data.applications.some(app => 
+  const hasUserApplied = (studentId, scholarshipId) => {
+    return data.applications.some(app =>
       app.studentId === studentId && app.scholarshipId === scholarshipId
     );
   };
 
   return {
     data,
-    // User operations
+
+    // user operations
     addUser,
     getUserByCredentials,
     getUserById,
     updateUser,
-    // Scholarship operations
+
+    // scholarship operations
     addScholarship,
     updateScholarship,
     deleteScholarship,
     getActiveScholarships,
     getScholarshipById,
-    // Application operations
+
+    // application operations
     addApplication,
     updateApplicationStatus,
     getApplicationsByStudent,

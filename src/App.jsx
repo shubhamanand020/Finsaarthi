@@ -10,7 +10,7 @@ import { ScholarshipsPage } from './pages/ScholarshipsPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 function App() {
-  // Simple client-side routing based on URL hash
+  // Simple client-side routing using hash (#) URLs
   const getPageFromHash = () => {
     const hash = window.location.hash.slice(1) || '/';
     return hash;
@@ -27,7 +27,7 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Update all links to use hash routing
+  // Convert all <a href="/..."> links to hash routing automatically
   React.useEffect(() => {
     const updateLinks = () => {
       const links = document.querySelectorAll('a[href^="/"]');
@@ -40,8 +40,8 @@ function App() {
     };
 
     updateLinks();
-    
-    // Update links when page content changes
+
+    // Watch DOM changes for new links
     const observer = new MutationObserver(updateLinks);
     observer.observe(document.body, { childList: true, subtree: true });
 

@@ -1,16 +1,12 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Navigation } from './Navigation';
 
-interface LayoutProps {
-  children: ReactNode;
-}
-
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout = ({ children }) => {
   const { user } = useAuth();
   const { getUserById } = useLocalStorage();
-  
+
   const currentUser = user ? getUserById(user.id) : null;
 
   return (

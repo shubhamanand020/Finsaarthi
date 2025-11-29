@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, Users, TrendingUp, Award, ArrowRight, Star } from 'lucide-react';
 
-export const HomePage: React.FC = () => {
+export const HomePage = () => {
   const { user } = useAuth();
 
   const stats = [
@@ -47,9 +47,11 @@ export const HomePage: React.FC = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-orange-900/20 to-orange-600/10"></div>
         </div>
-        
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
+
+            {/* Left Text */}
             <div className="text-center lg:text-left">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
                 Your Gateway to
@@ -57,10 +59,12 @@ export const HomePage: React.FC = () => {
                   Educational Excellence
                 </span>
               </h1>
+
               <p className="text-xl text-gray-700 mb-8 max-w-2xl mx-auto lg:mx-0">
-                Discover, apply, and secure scholarships that match your dreams. 
+                Discover, apply, and secure scholarships that match your dreams.
                 FinSaarthi connects deserving students with life-changing educational opportunities.
               </p>
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 {user ? (
                   <a
@@ -79,6 +83,7 @@ export const HomePage: React.FC = () => {
                       Get Started
                       <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </a>
+
                     <a
                       href="/scholarships"
                       className="bg-white text-orange-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-all duration-300 border-2 border-orange-200 hover:border-orange-300 shadow-lg"
@@ -89,7 +94,8 @@ export const HomePage: React.FC = () => {
                 )}
               </div>
             </div>
-            
+
+            {/* Right Hero Card */}
             <div className="relative">
               <div className="bg-white rounded-2xl shadow-2xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-500">
                 <img
@@ -99,9 +105,10 @@ export const HomePage: React.FC = () => {
                 />
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Success Story</h3>
                 <p className="text-gray-600">
-                  "FinSaarthi helped me secure a scholarship worth ₹2 lakhs for my engineering degree. 
+                  "FinSaarthi helped me secure a scholarship worth ₹2 lakhs for my engineering degree.
                   The process was seamless and the support was incredible!"
                 </p>
+
                 <div className="flex items-center mt-4">
                   <div className="w-10 h-10 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold">
                     P
@@ -113,6 +120,7 @@ export const HomePage: React.FC = () => {
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </section>
@@ -137,22 +145,17 @@ export const HomePage: React.FC = () => {
       {/* Features Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why Choose FinSaarthi?
-            </h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose FinSaarthi?</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We've built a comprehensive platform that makes finding and applying for scholarships 
-              easier than ever before.
+              We've built a comprehensive platform that makes finding and applying for scholarships easier than ever before.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100"
-              >
+              <div key={index} className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100">
                 <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl mb-6">
                   {feature.icon}
                 </div>
@@ -161,19 +164,20 @@ export const HomePage: React.FC = () => {
               </div>
             ))}
           </div>
+
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-orange-600 to-orange-700">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Start Your Journey?
-          </h2>
+        <div className="max-w-4xl mx-auto text-center px-4">
+
+          <h2 className="text-4xl font-bold text-white mb-6">Ready to Start Your Journey?</h2>
+
           <p className="text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of students who have already found their perfect scholarship match 
-            through FinSaarthi. Your educational dreams are just one click away.
+            Join thousands of students who have already found their perfect scholarship match through FinSaarthi.
           </p>
+
           {!user && (
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
@@ -182,6 +186,7 @@ export const HomePage: React.FC = () => {
               >
                 Create Account
               </a>
+
               <a
                 href="/login"
                 className="bg-orange-800 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-orange-900 transition-all duration-300 shadow-lg"
@@ -190,8 +195,10 @@ export const HomePage: React.FC = () => {
               </a>
             </div>
           )}
+
         </div>
       </section>
+
     </div>
   );
 };

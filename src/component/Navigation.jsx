@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Menu, X, Home, User, BookOpen, Settings, LogOut, CircleUser as UserCircle } from 'lucide-react';
 
-export const Navigation: React.FC = () => {
+export const Navigation = () => {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -12,7 +12,7 @@ export const Navigation: React.FC = () => {
     window.location.href = '/';
   };
 
-  const NavLink: React.FC<{ href: string; icon: React.ReactNode; children: React.ReactNode; onClick?: () => void }> = ({ href, icon, children, onClick }) => (
+  const NavLink = ({ href, icon, children, onClick }) => (
     <a
       href={href}
       onClick={(e) => {
@@ -33,6 +33,7 @@ export const Navigation: React.FC = () => {
     <nav className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
+
           {/* Logo */}
           <div className="flex items-center">
             <a href="/" className="flex items-center space-x-2">
@@ -50,23 +51,28 @@ export const Navigation: React.FC = () => {
             <a href="/" className="text-gray-700 hover:text-orange-600 transition-colors">
               Home
             </a>
+
             <a href="/scholarships" className="text-gray-700 hover:text-orange-600 transition-colors">
               Scholarships
             </a>
+
             {user ? (
               <>
                 <a href="/dashboard" className="text-gray-700 hover:text-orange-600 transition-colors">
                   Dashboard
                 </a>
+
                 {user.role === 'admin' && (
                   <a href="/admin" className="text-gray-700 hover:text-orange-600 transition-colors">
                     Admin
                   </a>
                 )}
+
                 <a href="/profile" className="text-gray-700 hover:text-orange-600 transition-colors flex items-center">
                   <UserCircle className="w-4 h-4 mr-1" />
                   Profile
                 </a>
+
                 <button
                   onClick={handleLogout}
                   className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200"
@@ -84,7 +90,7 @@ export const Navigation: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile Menu Button */}
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -93,6 +99,7 @@ export const Navigation: React.FC = () => {
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
+
         </div>
       </div>
 
@@ -103,19 +110,23 @@ export const Navigation: React.FC = () => {
             <NavLink href="/" icon={<Home className="w-5 h-5" />}>
               Home
             </NavLink>
+
             <NavLink href="/scholarships" icon={<BookOpen className="w-5 h-5" />}>
               Scholarships
             </NavLink>
+
             {user ? (
               <>
                 <NavLink href="/dashboard" icon={<User className="w-5 h-5" />}>
                   Dashboard
                 </NavLink>
+
                 {user.role === 'admin' && (
                   <NavLink href="/admin" icon={<Settings className="w-5 h-5" />}>
                     Admin
                   </NavLink>
                 )}
+
                 <NavLink href="#" icon={<LogOut className="w-5 h-5" />} onClick={handleLogout}>
                   Logout
                 </NavLink>

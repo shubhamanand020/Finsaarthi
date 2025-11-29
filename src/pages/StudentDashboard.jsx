@@ -2,17 +2,34 @@ import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ScholarshipCard } from '../component/ScholarshipCard';
-import { Search, Filter, BookOpen, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import {
+  Search,
+  BookOpen,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle
+} from 'lucide-react';
 
-export const StudentDashboard: React.FC = () => {
+export const StudentDashboard = () => {
   const { user } = useAuth();
-  const { getActiveScholarships, getApplicationsByStudent, hasUserApplied, addApplication, getScholarshipById } = useLocalStorage();
-  const [activeTab, setActiveTab] = useState<'browse' | 'applications'>('browse');
+  const {
+    getActiveScholarships,
+    getApplicationsByStudent,
+    hasUserApplied,
+    addApplication,
+    getScholarshipById
+  } = useLocalStorage();
+
+  const [activeTab, setActiveTab] = useState('browse');
   const [searchTerm, setSearchTerm] = useState('');
+
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('deadline');
+
   const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [selectedScholarship, setSelectedScholarship] = useState<string | null>(null);
+  const [selectedScholarship, setSelectedScholarship] = useState(null);
+
   const [applicationForm, setApplicationForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -20,30 +37,35 @@ export const StudentDashboard: React.FC = () => {
     address: '',
     education: '',
     gpa: 0,
-    documents: [] as string[],
+    documents: [],
   });
 
+  if (!user) {
+    return <div>Please log in to access your dashboard.</div>;
+  }
+
   const scholarships = getActiveScholarships();
-  const applications = user ? getApplicationsByStudent(user.id) : [];
+  const applications = getApplicationsByStudent(user.id);
 
   const filteredScholarships = useMemo(() => {
-    let filtered = scholarships.filter(scholarship => {
-      const matchesSearch = scholarship.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          scholarship.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          scholarship.provider.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesCategory = selectedCategory === '' || scholarship.category === selectedCategory;
+    let filtered = scholarships.filter((s) => {
+      const matchesSearch =
+        s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.provider.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory =
+        selectedCategory === '' || s.category === selectedCategory;
 
       return matchesSearch && matchesCategory;
     });
 
-    // Sort scholarships
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'amount':
           return b.amount - a.amount;
         case 'deadline':
-          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+          return new Date(a.deadline) - new Date(b.deadline);
         case 'title':
           return a.title.localeCompare(b.title);
         default:
@@ -54,15 +76,16 @@ export const StudentDashboard: React.FC = () => {
     return filtered;
   }, [scholarships, searchTerm, selectedCategory, sortBy]);
 
-  const categories = [...new Set(scholarships.map(s => s.category))];
+  const categories = [...new Set(scholarships.map((s) => s.category))];
 
-  const handleApply = (scholarshipId: string) => {
+  const handleApply = (scholarshipId) => {
     setSelectedScholarship(scholarshipId);
     setShowApplicationModal(true);
   };
 
-  const handleSubmitApplication = (e: React.FormEvent) => {
+  const handleSubmitApplication = (e) => {
     e.preventDefault();
+
     if (!user || !selectedScholarship) return;
 
     addApplication({
@@ -74,6 +97,7 @@ export const StudentDashboard: React.FC = () => {
 
     setShowApplicationModal(false);
     setSelectedScholarship(null);
+
     setApplicationForm({
       name: user.name,
       email: user.email,
@@ -85,7 +109,7 @@ export const StudentDashboard: React.FC = () => {
     });
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status) => {
     switch (status) {
       case 'approved':
         return <CheckCircle className="w-5 h-5 text-green-600" />;
@@ -98,7 +122,7 @@ export const StudentDashboard: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case 'approved':
         return 'bg-green-100 text-green-800';
@@ -111,16 +135,13 @@ export const StudentDashboard: React.FC = () => {
     }
   };
 
-  if (!user) {
-    return <div>Please log in to access your dashboard.</div>;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4">
+
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold mb-2">
             Welcome back, {user.name}!
           </h1>
           <p className="text-gray-600">
@@ -128,71 +149,84 @@ export const StudentDashboard: React.FC = () => {
           </p>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border">
             <div className="flex items-center">
               <BookOpen className="w-8 h-8 text-orange-600 mr-3" />
               <div>
-                <p className="text-2xl font-bold text-gray-900">{scholarships.length}</p>
+                <p className="text-2xl font-bold">{scholarships.length}</p>
                 <p className="text-gray-600">Available Scholarships</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border">
             <div className="flex items-center">
               <Clock className="w-8 h-8 text-blue-600 mr-3" />
               <div>
-                <p className="text-2xl font-bold text-gray-900">{applications.length}</p>
+                <p className="text-2xl font-bold">{applications.length}</p>
                 <p className="text-gray-600">Your Applications</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border">
             <div className="flex items-center">
               <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
               <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {applications.filter(app => app.status === 'approved').length}
+                <p className="text-2xl font-bold">
+                  {applications.filter((app) => app.status === 'approved').length}
                 </p>
-                <p className="text-gray-600">Approved Applications</p>
+                <p className="text-gray-600">Approved</p>
               </div>
             </div>
           </div>
+
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-lg mb-8 border border-gray-100">
-          <div className="border-b border-gray-200">
+        <div className="bg-white rounded-xl shadow-lg mb-8 border">
+
+          <div className="border-b">
             <nav className="flex space-x-8 px-6">
+
               <button
                 onClick={() => setActiveTab('browse')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'browse'
                     ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500'
                 }`}
               >
                 Browse Scholarships
               </button>
+
               <button
                 onClick={() => setActiveTab('applications')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'applications'
                     ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500'
                 }`}
               >
                 My Applications ({applications.length})
               </button>
+
             </nav>
           </div>
 
           <div className="p-6">
+
+            {/* TAB: BROWSE */}
             {activeTab === 'browse' ? (
               <div>
-                {/* Search and Filters */}
+
+                {/* Search + Filters */}
                 <div className="flex flex-col md:flex-row gap-4 mb-8">
+
+                  {/* Search */}
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                     <input
@@ -200,120 +234,147 @@ export const StudentDashboard: React.FC = () => {
                       placeholder="Search scholarships..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
+
+                  {/* Category */}
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="">All Categories</option>
-                    {categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
+
+                  {/* Sort */}
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="deadline">Sort by Deadline</option>
                     <option value="amount">Sort by Amount</option>
                     <option value="title">Sort by Title</option>
                   </select>
+
                 </div>
 
                 {/* Scholarships Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredScholarships.map(scholarship => (
+
+                  {filteredScholarships.map((sch) => (
                     <ScholarshipCard
-                      key={scholarship.id}
-                      scholarship={scholarship}
-                      onApply={() => handleApply(scholarship.id)}
-                      hasApplied={hasUserApplied(user.id, scholarship.id)}
+                      key={sch.id}
+                      scholarship={sch}
+                      onApply={() => handleApply(sch.id)}
+                      hasApplied={hasUserApplied(user.id, sch.id)}
                     />
                   ))}
+
                 </div>
 
                 {filteredScholarships.length === 0 && (
                   <div className="text-center py-12">
                     <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No scholarships found</h3>
+                    <h3 className="text-lg font-medium mb-2">No scholarships found</h3>
                     <p className="text-gray-600">
-                      Try adjusting your search criteria or check back later for new opportunities.
+                      Try adjusting your search or filter criteria.
                     </p>
                   </div>
                 )}
+
               </div>
             ) : (
+              /* TAB: APPLICATIONS */
               <div>
-                {/* Applications List */}
+
                 {applications.length > 0 ? (
                   <div className="space-y-6">
-                    {applications.map(application => {
-                      const scholarship = getScholarshipById(application.scholarshipId);
+
+                    {applications.map((app) => {
+                      const scholarship = getScholarshipById(app.scholarshipId);
                       if (!scholarship) return null;
 
                       return (
-                        <div key={application.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                        <div
+                          key={app.id}
+                          className="bg-gray-50 border rounded-lg p-6"
+                        >
                           <div className="flex justify-between items-start mb-4">
+
                             <div>
-                              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                {scholarship.title}
-                              </h3>
+                              <h3 className="text-lg font-semibold mb-2">{scholarship.title}</h3>
                               <p className="text-gray-600 text-sm">
-                                Applied on: {new Date(application.submittedAt).toLocaleDateString('en-IN')}
+                                Applied on:{' '}
+                                {new Date(app.submittedAt).toLocaleDateString('en-IN')}
                               </p>
                             </div>
+
                             <div className="flex items-center">
-                              {getStatusIcon(application.status)}
-                              <span className={`ml-2 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                                {application.status.charAt(0).toUpperCase() + application.status.slice(1).replace('-', ' ')}
+                              {getStatusIcon(app.status)}
+                              <span
+                                className={`ml-2 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}
+                              >
+                                {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
                               </span>
                             </div>
+
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
                             <div>
-                              <span className="font-medium text-gray-900">Amount:</span>
+                              <span className="font-medium">Amount:</span>
                               <span className="ml-2 text-orange-600 font-semibold">
                                 ₹{scholarship.amount.toLocaleString('en-IN')}
                               </span>
                             </div>
+
                             <div>
-                              <span className="font-medium text-gray-900">Provider:</span>
-                              <span className="ml-2 text-gray-600">{scholarship.provider}</span>
+                              <span className="font-medium">Provider:</span>
+                              <span className="ml-2 text-gray-600">
+                                {scholarship.provider}
+                              </span>
                             </div>
+
                           </div>
 
-                          {application.adminNotes && (
-                            <div className="mt-4 p-3 bg-white rounded-lg border">
-                              <h4 className="font-medium text-gray-900 mb-1">Admin Notes:</h4>
-                              <p className="text-gray-600 text-sm">{application.adminNotes}</p>
+                          {app.adminNotes && (
+                            <div className="mt-4 bg-white border rounded p-3">
+                              <h4 className="font-medium mb-1">Admin Notes:</h4>
+                              <p className="text-gray-600 text-sm">{app.adminNotes}</p>
                             </div>
                           )}
+
                         </div>
                       );
                     })}
+
                   </div>
                 ) : (
                   <div className="text-center py-12">
                     <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
+                    <h3 className="text-lg font-medium mb-2">No applications yet</h3>
                     <p className="text-gray-600 mb-4">
-                      Start by browsing and applying to scholarships that match your profile.
+                      Start browsing scholarships and apply to ones that match your profile.
                     </p>
+
                     <button
                       onClick={() => setActiveTab('browse')}
-                      className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-2 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200"
+                      className="px-6 py-2 bg-orange-600 text-white rounded-lg"
                     >
                       Browse Scholarships
                     </button>
                   </div>
                 )}
+
               </div>
             )}
+
           </div>
         </div>
       </div>
@@ -321,52 +382,62 @@ export const StudentDashboard: React.FC = () => {
       {/* Application Modal */}
       {showApplicationModal && selectedScholarship && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Apply for Scholarship</h2>
-              
+
+              <h2 className="text-2xl font-bold mb-6">Apply for Scholarship</h2>
+
               <form onSubmit={handleSubmitApplication} className="space-y-6">
+
+                {/* Inputs */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Full Name</label>
                     <input
                       type="text"
                       required
                       value={applicationForm.name}
-                      onChange={(e) => setApplicationForm({ ...applicationForm, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      onChange={(e) =>
+                        setApplicationForm({ ...applicationForm, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
+
+                  {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Email</label>
                     <input
                       type="email"
                       required
                       value={applicationForm.email}
-                      onChange={(e) => setApplicationForm({ ...applicationForm, email: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      onChange={(e) =>
+                        setApplicationForm({ ...applicationForm, email: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
+
+                  {/* Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Phone Number</label>
                     <input
                       type="tel"
                       required
                       value={applicationForm.phone}
-                      onChange={(e) => setApplicationForm({ ...applicationForm, phone: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      onChange={(e) =>
+                        setApplicationForm({ ...applicationForm, phone: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
+
+                  {/* GPA */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      GPA/Percentage
-                    </label>
+                    <label className="block text-sm font-medium mb-2">GPA / Percentage</label>
                     <input
                       type="number"
                       required
@@ -374,59 +445,75 @@ export const StudentDashboard: React.FC = () => {
                       max="100"
                       step="0.01"
                       value={applicationForm.gpa}
-                      onChange={(e) => setApplicationForm({ ...applicationForm, gpa: parseFloat(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      onChange={(e) =>
+                        setApplicationForm({
+                          ...applicationForm,
+                          gpa: parseFloat(e.target.value),
+                        })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
+
                 </div>
 
+                {/* Address */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address
-                  </label>
+                  <label className="block text-sm font-medium mb-2">Address</label>
                   <textarea
                     required
                     rows={3}
                     value={applicationForm.address}
-                    onChange={(e) => setApplicationForm({ ...applicationForm, address: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    onChange={(e) =>
+                      setApplicationForm({ ...applicationForm, address: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border rounded-lg"
                   />
                 </div>
 
+                {/* Education */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2">
                     Educational Background
                   </label>
                   <textarea
                     required
                     rows={3}
-                    placeholder="Describe your current education status, institution, course, etc."
                     value={applicationForm.education}
-                    onChange={(e) => setApplicationForm({ ...applicationForm, education: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    onChange={(e) =>
+                      setApplicationForm({ ...applicationForm, education: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border rounded-lg"
                   />
                 </div>
 
+                {/* Buttons */}
                 <div className="flex justify-end space-x-4">
+
                   <button
                     type="button"
                     onClick={() => setShowApplicationModal(false)}
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="px-6 py-2 border rounded-lg"
                   >
                     Cancel
                   </button>
+
                   <button
                     type="submit"
-                    className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-2 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200"
+                    className="px-6 py-2 bg-orange-600 text-white rounded-lg"
                   >
                     Submit Application
                   </button>
+
                 </div>
+
               </form>
             </div>
           </div>
+
         </div>
       )}
+
     </div>
   );
 };
