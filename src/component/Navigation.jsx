@@ -1,14 +1,16 @@
 import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Menu, X } from "lucide-react";
 
 export const Navigation = () => {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = React.useState(false);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    window.location.href = "/";
+    navigate('/');
   };
 
   return (
@@ -16,9 +18,9 @@ export const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 
         {/* Logo */}
-        <a href="/" className="flex items-center space-x-2">
+        <Link to="/" className="flex items-center space-x-2">
           <img
-            src="https://media1.thehungryjpeg.com/thumbs2/ori_3656790_lz68k1yb3pzbslhunbx7ssq37zdzszv4grwq4t8d_monogram-fs-logo-design.jpg"  // <-- your online logo link
+            src="https://media1.thehungryjpeg.com/thumbs2/ori_3656790_lz68k1yb3pzbslhunbx7ssq37zdzszv4grwq4t8d_monogram-fs-logo-design.jpg"
             alt="FinSaarthi Logo"
             className="h-8 w-8 object-contain"
           />
@@ -26,54 +28,54 @@ export const Navigation = () => {
           <span className="text-2xl font-bold text-orange-600">
             FinSaarthi
           </span>
-        </a>
+        </Link>
 
 
         {/* Desktop Menu */}
         <div className="hidden md:flex space-x-8 items-center">
 
           {/* PUBLIC LINK */}
-          <a href="/" className="hover:text-orange-600 font-medium">Home</a>
+          <Link to="/" className="hover:text-orange-600 font-medium">Home</Link>
 
           {/* STUDENT ONLY LINKS */}
           {user && user.role === "student" && (
             <>
-              <a href="/scholarships" className="hover:text-orange-600 font-medium">
+              <Link to="/scholarships" className="hover:text-orange-600 font-medium">
                 Scholarships
-              </a>
+              </Link>
 
-              <a href="/dashboard" className="hover:text-orange-600 font-medium">
+              <Link to="/dashboard" className="hover:text-orange-600 font-medium">
                 Dashboard
-              </a>
+              </Link>
             </>
           )}
 
           {/* ADMIN ONLY LINK */}
           {user && user.role === "admin" && (
             <>
-              <a href="/admin" className="hover:text-orange-600 font-medium">
+              <Link to="/admin" className="hover:text-orange-600 font-medium">
                 Admin Panel
-              </a>
+              </Link>
             </>
           )}
 
           {/* PROFILE VISIBLE TO BOTH ADMIN + STUDENT */}
           {user && (
-            <a href="/profile" className="hover:text-orange-600 font-medium">
+            <Link to="/profile" className="hover:text-orange-600 font-medium">
               Profile
-            </a>
+            </Link>
           )}
 
           {/* AUTH BUTTONS */}
           {!user ? (
             <>
-              <a href="/login" className="text-orange-600 font-medium">Login</a>
-              <a
-                href="/register"
+              <Link to="/login" className="text-orange-600 font-medium">Login</Link>
+              <Link
+                to="/register"
                 className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium"
               >
                 Register
-              </a>
+              </Link>
             </>
           ) : (
             <button
@@ -95,48 +97,48 @@ export const Navigation = () => {
       {isOpen && (
         <div className="md:hidden bg-white shadow-lg px-4 py-4 space-y-4">
 
-          <a href="/" className="block hover:text-orange-600 font-medium">
+          <Link to="/" className="block hover:text-orange-600 font-medium">
             Home
-          </a>
+          </Link>
 
           {/* STUDENT ONLY */}
           {user && user.role === "student" && (
             <>
-              <a href="/scholarships" className="block hover:text-orange-600 font-medium">
+              <Link to="/scholarships" className="block hover:text-orange-600 font-medium">
                 Scholarships
-              </a>
-              <a href="/dashboard" className="block hover:text-orange-600 font-medium">
+              </Link>
+              <Link to="/dashboard" className="block hover:text-orange-600 font-medium">
                 Dashboard
-              </a>
+              </Link>
             </>
           )}
 
           {/* ADMIN ONLY */}
           {user && user.role === "admin" && (
             <>
-              <a href="/admin" className="block hover:text-orange-600 font-medium">
+              <Link to="/admin" className="block hover:text-orange-600 font-medium">
                 Admin Panel
-              </a>
+              </Link>
             </>
           )}
 
           {/* PROFILE FOR BOTH */}
           {user && (
-            <a href="/profile" className="block hover:text-orange-600 font-medium">
+            <Link to="/profile" className="block hover:text-orange-600 font-medium">
               Profile
-            </a>
+            </Link>
           )}
 
           {/* AUTH BUTTONS */}
           {!user ? (
             <>
-              <a href="/login" className="block text-orange-600 font-medium">Login</a>
-              <a
-                href="/register"
+              <Link to="/login" className="block text-orange-600 font-medium">Login</Link>
+              <Link
+                to="/register"
                 className="block w-full text-center px-4 py-2 bg-orange-600 text-white rounded-lg font-medium"
               >
                 Register
-              </a>
+              </Link>
             </>
           ) : (
             <button

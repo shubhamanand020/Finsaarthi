@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, Users, TrendingUp, Award, ArrowRight, Star } from 'lucide-react';
 
@@ -67,29 +68,29 @@ export const HomePage = () => {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 {user ? (
-                  <a
-                    href="/dashboard"
+                  <Link
+                    to="/dashboard"
                     className="bg-gradient-to-r from-orange-600 to-orange-700 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center group"
                   >
                     Go to Dashboard
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </a>
+                  </Link>
                 ) : (
                   <>
-                    <a
-                      href="/login"
+                    <Link
+                      to="/login"
                       className="bg-gradient-to-r from-orange-600 to-orange-700 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center group"
                     >
                       Get Started
                       <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </a>
+                    </Link>
 
-                    <a
-                      href="/scholarships"
+                    <Link
+                      to="/scholarships"
                       className="bg-white text-orange-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-all duration-300 border-2 border-orange-200 hover:border-orange-300 shadow-lg"
                     >
                       Browse Scholarships
-                    </a>
+                    </Link>
                   </>
                 )}
               </div>
@@ -180,19 +181,19 @@ export const HomePage = () => {
 
           {!user && (
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="/register"
+              <Link
+                to="/register"
                 className="bg-white text-orange-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-all duration-300 shadow-lg"
               >
                 Create Account
-              </a>
+              </Link>
 
-              <a
-                href="/login"
+              <Link
+                to="/login"
                 className="bg-orange-800 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-orange-900 transition-all duration-300 shadow-lg"
               >
                 Login
-              </a>
+              </Link>
             </div>
           )}
 

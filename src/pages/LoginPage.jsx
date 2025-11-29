@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Eye, EyeOff, BookOpen, AlertCircle } from 'lucide-react';
@@ -6,6 +7,7 @@ import { Eye, EyeOff, BookOpen, AlertCircle } from 'lucide-react';
 export const LoginPage = () => {
   const { login } = useAuth();
   const { getUserByCredentials } = useLocalStorage();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -31,7 +33,7 @@ export const LoginPage = () => {
           name: user.name,
           role: user.role,
         });
-        window.location.href = user.role === 'admin' ? '/admin' : '/dashboard';
+        navigate(user.role === 'admin' ? '/admin' : '/dashboard');
       } else {
         setError('Invalid email or password. Please try again.');
       }
@@ -146,9 +148,9 @@ export const LoginPage = () => {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{' '}
-                <a href="/register" className="text-orange-600 font-medium hover:text-orange-500">
+                <Link to="/register" className="text-orange-600 font-medium hover:text-orange-500">
                   Sign up here
-                </a>
+                </Link>
               </p>
             </div>
           </form>

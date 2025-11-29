@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   Mail,
   Phone,
@@ -33,10 +34,9 @@ export const Footer = () => {
             Quick Links
           </h3>
           <ul className="space-y-2 text-sm">
-            <li><a href="/" className="hover:text-orange-400">Home</a></li>
-            <li><a href="/scholarships" className="hover:text-orange-400">Scholarships</a></li>
-            <li><a href="/dashboard" className="hover:text-orange-400">Dashboard</a></li>
-           
+            <li><Link to="/" className="hover:text-orange-400">Home</Link></li>
+            <li><Link to="/scholarships" className="hover:text-orange-400">Scholarships</Link></li>
+            <li><Link to="/dashboard" className="hover:text-orange-400">Dashboard</Link></li>
           </ul>
         </div>
 
@@ -72,6 +72,7 @@ export const Footer = () => {
               <a
                 href="https://github.com/shubhamanand020/Finsaarthi.git"
                 target="_blank"
+                rel="noreferrer"
                 className="hover:text-orange-400"
               >
                 GitHub Repository
@@ -82,6 +83,7 @@ export const Footer = () => {
               <a
                 href="https://linkedin.com/in/your-profile"
                 target="_blank"
+                rel="noreferrer"
                 className="hover:text-orange-400"
               >
                 LinkedIn Profile

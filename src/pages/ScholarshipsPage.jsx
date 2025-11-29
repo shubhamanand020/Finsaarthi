@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { ScholarshipCard } from "../component/ScholarshipCard";
@@ -12,6 +13,7 @@ export const ScholarshipsPage = () => {
     addApplication,
     getScholarshipById,
   } = useLocalStorage();
+  const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -30,7 +32,7 @@ export const ScholarshipsPage = () => {
     documents: [],
   });
 
-  // 👉 NEW States for View Details Modal
+  // 👉 States for View Details Modal
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsData, setDetailsData] = useState(null);
 
@@ -79,7 +81,7 @@ export const ScholarshipsPage = () => {
   // APPLY FLOW
   const handleApply = (scholarshipId) => {
     if (!user) {
-      window.location.href = "/login";
+      navigate("/login");
       return;
     }
     setSelectedScholarship(scholarshipId);
@@ -176,9 +178,9 @@ export const ScholarshipsPage = () => {
 
           {!user && (
             <p className="text-sm text-gray-600">
-              <a href="/login" className="text-orange-600 font-medium hover:text-orange-700">
+              <Link to="/login" className="text-orange-600 font-medium hover:text-orange-700">
                 Login to apply
-              </a>
+              </Link>
             </p>
           )}
         </div>

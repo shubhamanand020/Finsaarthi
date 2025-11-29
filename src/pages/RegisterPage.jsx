@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Eye, EyeOff, BookOpen, AlertCircle } from 'lucide-react';
@@ -6,6 +7,7 @@ import { Eye, EyeOff, BookOpen, AlertCircle } from 'lucide-react';
 export const RegisterPage = () => {
   const { login } = useAuth();
   const { addUser, data } = useLocalStorage();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -74,7 +76,7 @@ export const RegisterPage = () => {
         role: newUser.role,
       });
 
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
 
     } catch (err) {
       setError('An error occurred while creating your account. Please try again.');
@@ -227,12 +229,12 @@ export const RegisterPage = () => {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
-                <a
-                  href="/login"
+                <Link
+                  to="/login"
                   className="text-orange-600 font-medium hover:text-orange-500"
                 >
                   Sign in here
-                </a>
+                </Link>
               </p>
             </div>
 

@@ -27,8 +27,13 @@ export const StudentDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('deadline');
 
+  // Application Modal State
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [selectedScholarship, setSelectedScholarship] = useState(null);
+
+  // NEW: View Details Modal State
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsData, setDetailsData] = useState(null);
 
   const [applicationForm, setApplicationForm] = useState({
     name: user?.name || '',
@@ -78,9 +83,20 @@ export const StudentDashboard = () => {
 
   const categories = [...new Set(scholarships.map((s) => s.category))];
 
+  // Handler for Apply
   const handleApply = (scholarshipId) => {
     setSelectedScholarship(scholarshipId);
     setShowApplicationModal(true);
+    // If opening apply from details modal, close details modal
+    if (showDetailsModal) setShowDetailsModal(false);
+  };
+
+  // NEW: Handler for View Details
+  const handleViewDetails = (scholarshipId) => {
+    const scholarship = getScholarshipById(scholarshipId);
+    if (!scholarship) return;
+    setDetailsData(scholarship);
+    setShowDetailsModal(true);
   };
 
   const handleSubmitApplication = (e) => {
@@ -107,6 +123,8 @@ export const StudentDashboard = () => {
       gpa: 0,
       documents: [],
     });
+    
+    alert("Application submitted successfully!");
   };
 
   const getStatusIcon = (status) => {
@@ -151,7 +169,6 @@ export const StudentDashboard = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
           <div className="bg-white rounded-xl shadow-lg p-6 border">
             <div className="flex items-center">
               <BookOpen className="w-8 h-8 text-orange-600 mr-3" />
@@ -183,15 +200,12 @@ export const StudentDashboard = () => {
               </div>
             </div>
           </div>
-
         </div>
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-lg mb-8 border">
-
           <div className="border-b">
             <nav className="flex space-x-8 px-6">
-
               <button
                 onClick={() => setActiveTab('browse')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -213,20 +227,15 @@ export const StudentDashboard = () => {
               >
                 My Applications ({applications.length})
               </button>
-
             </nav>
           </div>
 
           <div className="p-6">
-
             {/* TAB: BROWSE */}
             {activeTab === 'browse' ? (
               <div>
-
                 {/* Search + Filters */}
                 <div className="flex flex-col md:flex-row gap-4 mb-8">
-
-                  {/* Search */}
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                     <input
@@ -238,7 +247,6 @@ export const StudentDashboard = () => {
                     />
                   </div>
 
-                  {/* Category */}
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
@@ -250,7 +258,6 @@ export const StudentDashboard = () => {
                     ))}
                   </select>
 
-                  {/* Sort */}
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
@@ -260,21 +267,19 @@ export const StudentDashboard = () => {
                     <option value="amount">Sort by Amount</option>
                     <option value="title">Sort by Title</option>
                   </select>
-
                 </div>
 
                 {/* Scholarships Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
                   {filteredScholarships.map((sch) => (
                     <ScholarshipCard
                       key={sch.id}
                       scholarship={sch}
                       onApply={() => handleApply(sch.id)}
+                      onView={() => handleViewDetails(sch.id)} // <--- NEW PROP
                       hasApplied={hasUserApplied(user.id, sch.id)}
                     />
                   ))}
-
                 </div>
 
                 {filteredScholarships.length === 0 && (
@@ -286,15 +291,12 @@ export const StudentDashboard = () => {
                     </p>
                   </div>
                 )}
-
               </div>
             ) : (
               /* TAB: APPLICATIONS */
               <div>
-
                 {applications.length > 0 ? (
                   <div className="space-y-6">
-
                     {applications.map((app) => {
                       const scholarship = getScholarshipById(app.scholarshipId);
                       if (!scholarship) return null;
@@ -305,7 +307,6 @@ export const StudentDashboard = () => {
                           className="bg-gray-50 border rounded-lg p-6"
                         >
                           <div className="flex justify-between items-start mb-4">
-
                             <div>
                               <h3 className="text-lg font-semibold mb-2">{scholarship.title}</h3>
                               <p className="text-gray-600 text-sm">
@@ -313,7 +314,6 @@ export const StudentDashboard = () => {
                                 {new Date(app.submittedAt).toLocaleDateString('en-IN')}
                               </p>
                             </div>
-
                             <div className="flex items-center">
                               {getStatusIcon(app.status)}
                               <span
@@ -322,25 +322,21 @@ export const StudentDashboard = () => {
                                 {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
                               </span>
                             </div>
-
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-
                             <div>
                               <span className="font-medium">Amount:</span>
                               <span className="ml-2 text-orange-600 font-semibold">
                                 ₹{scholarship.amount.toLocaleString('en-IN')}
                               </span>
                             </div>
-
                             <div>
                               <span className="font-medium">Provider:</span>
                               <span className="ml-2 text-gray-600">
                                 {scholarship.provider}
                               </span>
                             </div>
-
                           </div>
 
                           {app.adminNotes && (
@@ -349,11 +345,9 @@ export const StudentDashboard = () => {
                               <p className="text-gray-600 text-sm">{app.adminNotes}</p>
                             </div>
                           )}
-
                         </div>
                       );
                     })}
-
                   </div>
                 ) : (
                   <div className="text-center py-12">
@@ -362,7 +356,6 @@ export const StudentDashboard = () => {
                     <p className="text-gray-600 mb-4">
                       Start browsing scholarships and apply to ones that match your profile.
                     </p>
-
                     <button
                       onClick={() => setActiveTab('browse')}
                       className="px-6 py-2 bg-orange-600 text-white rounded-lg"
@@ -371,29 +364,96 @@ export const StudentDashboard = () => {
                     </button>
                   </div>
                 )}
-
               </div>
             )}
-
           </div>
         </div>
       </div>
 
-      {/* Application Modal */}
+      {/* VIEW DETAILS MODAL (NEW) */}
+      {showDetailsModal && detailsData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full shadow-xl p-6 relative max-h-[90vh] overflow-y-auto">
+            {/* Close Button */}
+            <button
+              className="absolute top-3 right-3 text-gray-600 hover:text-black"
+              onClick={() => setShowDetailsModal(false)}
+            >
+              ✕
+            </button>
+
+            <h2 className="text-2xl font-bold mb-2">{detailsData.title}</h2>
+
+            <p className="text-gray-600 mb-4">
+              Provider: <span className="font-medium">{detailsData.provider}</span>
+            </p>
+
+            <p className="text-orange-600 text-xl font-semibold mb-4">
+              ₹{detailsData.amount.toLocaleString("en-IN")}
+            </p>
+
+            <p className="text-gray-700 mb-4">
+              Deadline:{" "}
+              <span className="font-medium">
+                {new Date(detailsData.deadline).toLocaleDateString("en-IN")}
+              </span>
+            </p>
+
+            <h3 className="font-semibold text-lg mb-2">Description</h3>
+            <p className="text-gray-700 mb-4">{detailsData.description}</p>
+
+            <h3 className="font-semibold text-lg mb-2">Eligibility</h3>
+            <ul className="list-disc ml-5 mb-4 text-gray-700">
+              {detailsData.eligibility.map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+
+            <h3 className="font-semibold text-lg mb-2">Required Documents</h3>
+            <ul className="list-disc ml-5 mb-4 text-gray-700">
+              {detailsData.requirements.map((doc, i) => (
+                <li key={i}>{doc}</li>
+              ))}
+            </ul>
+
+            <p className="text-gray-700 mb-4">
+              Category:{" "}
+              <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
+                {detailsData.category}
+              </span>
+            </p>
+
+            <div className="flex space-x-4">
+               <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="flex-1 px-5 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+               >
+                  Close
+               </button>
+               
+               {/* Conditional Apply Button inside Modal */}
+               {!hasUserApplied(user.id, detailsData.id) && (
+                 <button
+                   onClick={() => handleApply(detailsData.id)}
+                   className="flex-1 px-5 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                 >
+                   Apply Now
+                 </button>
+               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* APPLICATION FORM MODAL */}
       {showApplicationModal && selectedScholarship && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-
               <h2 className="text-2xl font-bold mb-6">Apply for Scholarship</h2>
 
               <form onSubmit={handleSubmitApplication} className="space-y-6">
-
-                {/* Inputs */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                  {/* Name */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Full Name</label>
                     <input
@@ -407,7 +467,6 @@ export const StudentDashboard = () => {
                     />
                   </div>
 
-                  {/* Email */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Email</label>
                     <input
@@ -421,7 +480,6 @@ export const StudentDashboard = () => {
                     />
                   </div>
 
-                  {/* Phone */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Phone Number</label>
                     <input
@@ -435,7 +493,6 @@ export const StudentDashboard = () => {
                     />
                   </div>
 
-                  {/* GPA */}
                   <div>
                     <label className="block text-sm font-medium mb-2">GPA / Percentage</label>
                     <input
@@ -454,10 +511,8 @@ export const StudentDashboard = () => {
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
-
                 </div>
 
-                {/* Address */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Address</label>
                   <textarea
@@ -471,7 +526,6 @@ export const StudentDashboard = () => {
                   />
                 </div>
 
-                {/* Education */}
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Educational Background
@@ -487,9 +541,7 @@ export const StudentDashboard = () => {
                   />
                 </div>
 
-                {/* Buttons */}
                 <div className="flex justify-end space-x-4">
-
                   <button
                     type="button"
                     onClick={() => setShowApplicationModal(false)}
@@ -504,16 +556,12 @@ export const StudentDashboard = () => {
                   >
                     Submit Application
                   </button>
-
                 </div>
-
               </form>
             </div>
           </div>
-
         </div>
       )}
-
     </div>
   );
 };
