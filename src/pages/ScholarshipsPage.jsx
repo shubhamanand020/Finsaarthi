@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ScholarshipCard } from '../component/ScholarshipCard';
-import { Search, BookOpen } from 'lucide-react';
+import React, { useState, useMemo } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { ScholarshipCard } from "../component/ScholarshipCard";
+import { Search, BookOpen } from "lucide-react";
 
 export const ScholarshipsPage = () => {
   const { user } = useAuth();
@@ -10,25 +10,29 @@ export const ScholarshipsPage = () => {
     getActiveScholarships,
     hasUserApplied,
     addApplication,
-    getScholarshipById
+    getScholarshipById,
   } = useLocalStorage();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortBy, setSortBy] = useState('deadline');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [sortBy, setSortBy] = useState("deadline");
 
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [selectedScholarship, setSelectedScholarship] = useState(null);
 
   const [applicationForm, setApplicationForm] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    phone: '',
-    address: '',
-    education: '',
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: "",
+    address: "",
+    education: "",
     gpa: 0,
     documents: [],
   });
+
+  // 👉 NEW States for View Details Modal
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsData, setDetailsData] = useState(null);
 
   const scholarships = getActiveScholarships();
 
@@ -40,18 +44,18 @@ export const ScholarshipsPage = () => {
         sch.provider.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCategory =
-        selectedCategory === '' || sch.category === selectedCategory;
+        selectedCategory === "" || sch.category === selectedCategory;
 
       return matchesSearch && matchesCategory;
     });
 
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'amount':
+        case "amount":
           return b.amount - a.amount;
-        case 'deadline':
+        case "deadline":
           return new Date(a.deadline) - new Date(b.deadline);
-        case 'title':
+        case "title":
           return a.title.localeCompare(b.title);
         default:
           return 0;
@@ -63,28 +67,23 @@ export const ScholarshipsPage = () => {
 
   const categories = [...new Set(scholarships.map((s) => s.category))];
 
+  // 👉 VIEW DETAILS HANDLER (Modal)
+  const handleViewDetails = (scholarshipId) => {
+    const scholarship = getScholarshipById(scholarshipId);
+    if (!scholarship) return;
+
+    setDetailsData(scholarship);
+    setShowDetailsModal(true);
+  };
+
+  // APPLY FLOW
   const handleApply = (scholarshipId) => {
     if (!user) {
-      window.location.href = '/login';
+      window.location.href = "/login";
       return;
     }
     setSelectedScholarship(scholarshipId);
     setShowApplicationModal(true);
-  };
-
-  const handleViewDetails = (scholarshipId) => {
-    const s = getScholarshipById(scholarshipId);
-    if (s) {
-      alert(
-        `Scholarship Details:\n\n${s.title}\n\nAmount: ₹${s.amount.toLocaleString(
-          'en-IN'
-        )}\n\nDescription: ${s.description}\n\nEligibility: ${s.eligibility.join(
-          ', '
-        )}\n\nRequirements: ${s.requirements.join(
-          ', '
-        )}\n\nDeadline: ${new Date(s.deadline).toLocaleDateString('en-IN')}`
-      );
-    }
   };
 
   const handleSubmitApplication = (e) => {
@@ -94,7 +93,7 @@ export const ScholarshipsPage = () => {
     addApplication({
       studentId: user.id,
       scholarshipId: selectedScholarship,
-      status: 'pending',
+      status: "pending",
       studentDetails: applicationForm,
     });
 
@@ -104,14 +103,14 @@ export const ScholarshipsPage = () => {
     setApplicationForm({
       name: user.name,
       email: user.email,
-      phone: '',
-      address: '',
-      education: '',
+      phone: "",
+      address: "",
+      education: "",
       gpa: 0,
       documents: [],
     });
 
-    alert('Application submitted successfully!');
+    alert("Application submitted successfully!");
   };
 
   return (
@@ -169,7 +168,7 @@ export const ScholarshipsPage = () => {
           </div>
         </div>
 
-        {/* Results Count */}
+        {/* Count */}
         <div className="flex justify-between mb-6">
           <p className="text-gray-600">
             Showing {filteredScholarships.length} of {scholarships.length} scholarships
@@ -184,7 +183,7 @@ export const ScholarshipsPage = () => {
           )}
         </div>
 
-        {/* Grid */}
+        {/* Scholarships Grid */}
         {filteredScholarships.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredScholarships.map((sch) => (
@@ -201,29 +200,87 @@ export const ScholarshipsPage = () => {
           <div className="text-center py-16">
             <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-6" />
             <h3 className="text-2xl font-semibold">No scholarships found</h3>
-            <p className="text-gray-600">
-              Try adjusting your search or filter options.
-            </p>
+            <p className="text-gray-600">Try adjusting your search or filters.</p>
           </div>
         )}
-
       </div>
 
-      {/* Application Modal */}
-      {showApplicationModal && selectedScholarship && user && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      {/* ⭐ VIEW DETAILS MODAL */}
+      {showDetailsModal && detailsData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full shadow-xl p-6 relative">
 
+            {/* Close */}
+            <button
+              className="absolute top-3 right-3 text-gray-600 hover:text-black"
+              onClick={() => setShowDetailsModal(false)}
+            >
+              ✕
+            </button>
+
+            <h2 className="text-2xl font-bold mb-2">{detailsData.title}</h2>
+
+            <p className="text-gray-600 mb-4">
+              Provider: <span className="font-medium">{detailsData.provider}</span>
+            </p>
+
+            <p className="text-orange-600 text-xl font-semibold mb-4">
+              ₹{detailsData.amount.toLocaleString("en-IN")}
+            </p>
+
+            <p className="text-gray-700 mb-4">
+              Deadline:{" "}
+              <span className="font-medium">
+                {new Date(detailsData.deadline).toLocaleDateString("en-IN")}
+              </span>
+            </p>
+
+            <h3 className="font-semibold text-lg mb-2">Description</h3>
+            <p className="text-gray-700 mb-4">{detailsData.description}</p>
+
+            <h3 className="font-semibold text-lg mb-2">Eligibility</h3>
+            <ul className="list-disc ml-5 mb-4 text-gray-700">
+              {detailsData.eligibility.map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+
+            <h3 className="font-semibold text-lg mb-2">Required Documents</h3>
+            <ul className="list-disc ml-5 mb-4 text-gray-700">
+              {detailsData.requirements.map((doc, i) => (
+                <li key={i}>{doc}</li>
+              ))}
+            </ul>
+
+            <p className="text-gray-700 mb-4">
+              Category:{" "}
+              <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
+                {detailsData.category}
+              </span>
+            </p>
+
+            {user && user.role === "student" && (
+              <button
+                onClick={() => handleApply(detailsData.id)}
+                className="w-full mt-4 px-5 py-3 bg-orange-600 text-white text-lg rounded-lg hover:bg-orange-700 transition"
+              >
+                Apply Now
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* APPLY MODAL */}
+      {showApplicationModal && selectedScholarship && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-
               <h2 className="text-2xl font-bold mb-6">Apply for Scholarship</h2>
 
               <form onSubmit={handleSubmitApplication} className="space-y-6">
-
-                {/* Two-column inputs */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                  {/* Name */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Full Name</label>
                     <input
@@ -237,7 +294,6 @@ export const ScholarshipsPage = () => {
                     />
                   </div>
 
-                  {/* Email */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Email</label>
                     <input
@@ -251,9 +307,8 @@ export const ScholarshipsPage = () => {
                     />
                   </div>
 
-                  {/* Phone */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Phone Number</label>
+                    <label className="block text-sm font-medium mb-2">Phone</label>
                     <input
                       type="tel"
                       required
@@ -265,9 +320,8 @@ export const ScholarshipsPage = () => {
                     />
                   </div>
 
-                  {/* GPA */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">GPA / Percentage</label>
+                    <label className="block text-sm font-medium mb-2">GPA</label>
                     <input
                       type="number"
                       required
@@ -284,10 +338,8 @@ export const ScholarshipsPage = () => {
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
-
                 </div>
 
-                {/* Address */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Address</label>
                   <textarea
@@ -301,13 +353,11 @@ export const ScholarshipsPage = () => {
                   />
                 </div>
 
-                {/* Education */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Educational Background</label>
+                  <label className="block text-sm font-medium mb-2">Education</label>
                   <textarea
                     required
                     rows={3}
-                    placeholder="Describe your current education status"
                     value={applicationForm.education}
                     onChange={(e) =>
                       setApplicationForm({ ...applicationForm, education: e.target.value })
@@ -316,7 +366,6 @@ export const ScholarshipsPage = () => {
                   />
                 </div>
 
-                {/* Buttons */}
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"
@@ -333,15 +382,12 @@ export const ScholarshipsPage = () => {
                     Submit Application
                   </button>
                 </div>
-
               </form>
 
             </div>
           </div>
-
         </div>
       )}
-
     </div>
   );
 };

@@ -1,142 +1,151 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { Menu, X, Home, User, BookOpen, Settings, LogOut, CircleUser as UserCircle } from 'lucide-react';
+import React from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { Menu, X } from "lucide-react";
 
 export const Navigation = () => {
   const { user, logout } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
 
   const handleLogout = () => {
     logout();
-    setIsOpen(false);
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
-  const NavLink = ({ href, icon, children, onClick }) => (
-    <a
-      href={href}
-      onClick={(e) => {
-        if (onClick) {
-          e.preventDefault();
-          onClick();
-        }
-        setIsOpen(false);
-      }}
-      className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all duration-200"
-    >
-      {icon}
-      <span>{children}</span>
-    </a>
-  );
-
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <nav className="bg-white shadow-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 
-          {/* Logo */}
-          <div className="flex items-center">
-            <a href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-orange-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-orange-700 bg-clip-text text-transparent">
-                FinSaarthi
-              </span>
-            </a>
-          </div>
+        {/* Logo */}
+        <a href="/" className="flex items-center space-x-2">
+          <img
+            src="https://media1.thehungryjpeg.com/thumbs2/ori_3656790_lz68k1yb3pzbslhunbx7ssq37zdzszv4grwq4t8d_monogram-fs-logo-design.jpg"  // <-- your online logo link
+            alt="FinSaarthi Logo"
+            className="h-8 w-8 object-contain"
+          />
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <a href="/" className="text-gray-700 hover:text-orange-600 transition-colors">
-              Home
-            </a>
+          <span className="text-2xl font-bold text-orange-600">
+            FinSaarthi
+          </span>
+        </a>
 
-            <a href="/scholarships" className="text-gray-700 hover:text-orange-600 transition-colors">
-              Scholarships
-            </a>
 
-            {user ? (
-              <>
-                <a href="/dashboard" className="text-gray-700 hover:text-orange-600 transition-colors">
-                  Dashboard
-                </a>
+        {/* Desktop Menu */}
+        <div className="hidden md:flex space-x-8 items-center">
 
-                {user.role === 'admin' && (
-                  <a href="/admin" className="text-gray-700 hover:text-orange-600 transition-colors">
-                    Admin
-                  </a>
-                )}
+          {/* PUBLIC LINK */}
+          <a href="/" className="hover:text-orange-600 font-medium">Home</a>
 
-                <a href="/profile" className="text-gray-700 hover:text-orange-600 transition-colors flex items-center">
-                  <UserCircle className="w-4 h-4 mr-1" />
-                  Profile
-                </a>
-
-                <button
-                  onClick={handleLogout}
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <a
-                href="/login"
-                className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200"
-              >
-                Login
+          {/* STUDENT ONLY LINKS */}
+          {user && user.role === "student" && (
+            <>
+              <a href="/scholarships" className="hover:text-orange-600 font-medium">
+                Scholarships
               </a>
-            )}
-          </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
+              <a href="/dashboard" className="hover:text-orange-600 font-medium">
+                Dashboard
+              </a>
+            </>
+          )}
+
+          {/* ADMIN ONLY LINK */}
+          {user && user.role === "admin" && (
+            <>
+              <a href="/admin" className="hover:text-orange-600 font-medium">
+                Admin Panel
+              </a>
+            </>
+          )}
+
+          {/* PROFILE VISIBLE TO BOTH ADMIN + STUDENT */}
+          {user && (
+            <a href="/profile" className="hover:text-orange-600 font-medium">
+              Profile
+            </a>
+          )}
+
+          {/* AUTH BUTTONS */}
+          {!user ? (
+            <>
+              <a href="/login" className="text-orange-600 font-medium">Login</a>
+              <a
+                href="/register"
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium"
+              >
+                Register
+              </a>
+            </>
+          ) : (
             <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-700 hover:text-orange-600 focus:outline-none"
+              onClick={handleLogout}
+              className="px-4 py-2 bg-gray-800 text-white rounded-lg font-medium"
             >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              Logout
             </button>
-          </div>
-
+          )}
         </div>
+
+        {/* Mobile Menu Button */}
+        <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
+          {isOpen ? <X size={26} /> : <Menu size={26} />}
+        </button>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            <NavLink href="/" icon={<Home className="w-5 h-5" />}>
-              Home
-            </NavLink>
+        <div className="md:hidden bg-white shadow-lg px-4 py-4 space-y-4">
 
-            <NavLink href="/scholarships" icon={<BookOpen className="w-5 h-5" />}>
-              Scholarships
-            </NavLink>
+          <a href="/" className="block hover:text-orange-600 font-medium">
+            Home
+          </a>
 
-            {user ? (
-              <>
-                <NavLink href="/dashboard" icon={<User className="w-5 h-5" />}>
-                  Dashboard
-                </NavLink>
+          {/* STUDENT ONLY */}
+          {user && user.role === "student" && (
+            <>
+              <a href="/scholarships" className="block hover:text-orange-600 font-medium">
+                Scholarships
+              </a>
+              <a href="/dashboard" className="block hover:text-orange-600 font-medium">
+                Dashboard
+              </a>
+            </>
+          )}
 
-                {user.role === 'admin' && (
-                  <NavLink href="/admin" icon={<Settings className="w-5 h-5" />}>
-                    Admin
-                  </NavLink>
-                )}
+          {/* ADMIN ONLY */}
+          {user && user.role === "admin" && (
+            <>
+              <a href="/admin" className="block hover:text-orange-600 font-medium">
+                Admin Panel
+              </a>
+            </>
+          )}
 
-                <NavLink href="#" icon={<LogOut className="w-5 h-5" />} onClick={handleLogout}>
-                  Logout
-                </NavLink>
-              </>
-            ) : (
-              <NavLink href="/login" icon={<User className="w-5 h-5" />}>
-                Login
-              </NavLink>
-            )}
-          </div>
+          {/* PROFILE FOR BOTH */}
+          {user && (
+            <a href="/profile" className="block hover:text-orange-600 font-medium">
+              Profile
+            </a>
+          )}
+
+          {/* AUTH BUTTONS */}
+          {!user ? (
+            <>
+              <a href="/login" className="block text-orange-600 font-medium">Login</a>
+              <a
+                href="/register"
+                className="block w-full text-center px-4 py-2 bg-orange-600 text-white rounded-lg font-medium"
+              >
+                Register
+              </a>
+            </>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="block w-full px-4 py-2 bg-gray-800 text-white rounded-lg font-medium"
+            >
+              Logout
+            </button>
+          )}
         </div>
       )}
     </nav>
