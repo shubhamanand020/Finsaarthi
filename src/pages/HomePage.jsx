@@ -114,7 +114,7 @@ export const HomePage = () => {
                     P
                   </div>
                   <div className="ml-3">
-                    <p className="font-semibold text-gray-900">Priya Sharma</p>
+                    <p className="font-semibold text-gray-900">Ayush Sharma</p>
                     <p className="text-sm text-gray-600">Computer Engineering Student</p>
                   </div>
                 </div>

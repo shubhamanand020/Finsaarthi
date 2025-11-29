@@ -152,15 +152,6 @@ export const LoginPage = () => {
               </p>
             </div>
           </form>
-
-          {/* Demo Credentials */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg border">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</h3>
-            <div className="space-y-2 text-xs text-gray-600">
-              <div><strong>Student:</strong> student@example.com / student123</div>
-              <div><strong>Admin:</strong> admin@finsaarthi.com / admin123</div>
-            </div>
-          </div>
         </div>
 
       </div>
