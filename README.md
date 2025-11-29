@@ -1,175 +1,243 @@
-#Finsaarthi
+Finsaarthi
 
-A TypeScript project (primary language: TypeScript). This README provides setup, build, test, and contribution instructions. If any commands below do not match this repository's scripts, update them to match the project's package.json or build config.
+A React + JavaScript + Vite web application for managing scholarships, student dashboards, admin panels, and user authentication.
+The project uses Tailwind CSS, Context API for Auth, and a clean component/page-based architecture.
 
-## Table of contents
+📑 Table of Contents
 
-- About
-- Languages
-- Requirements
-- Installation
-- Build
-- Run / Development
-- Tests
-- Linting & Formatting
-- Docker
-- Project structure
-- Contributing
-- License
-- Contact
+About
 
-## About
+Features
 
-Sil is a project written primarily in TypeScript. The repository description currently reads: "will be deleted soon". This README is a general guide to get the project running and to help contributors understand how to work on the codebase.
+Tech Stack
 
-## Languages
+Project Structure
 
-- TypeScript (~97.5%)
-- JavaScript (~2%)
-- Other (~0.5%)
+Requirements
 
-## Requirements
+Installation
 
-- Node.js 16+ (or 14+ if you need wider compatibility)
-- npm (>=6) or yarn
-- Git
+Running the App
+
+Build
+
+Authentication
+
+Available Pages
+
+Components
+
+Context & Hooks
+
+Styling
+
+Backend (server.js)
+
+Contributing
+
+License
+
+Contact
+
+📘 About
+
+Finsaarthi is a web platform that helps students browse scholarships, manage their profiles, and interact with an admin dashboard.
+Built using modern React, Vite, and Tailwind, it focuses on simplicity, speed, and clean code.
+
+✨ Features
+
+🔐 Authentication using Context API
+
+🎓 Student dashboard
+
+🎁 Scholarship listing + individual cards
+
+🧑‍💼 Admin panel
+
+📄 Profile management
+
+⚡ Fast builds using Vite
+
+🎨 Tailwind CSS styling
+
+📦 Modular component-based architecture
+
+🛠 Tech Stack
+Frontend
+
+React (JavaScript)
+
+Vite
+
+React Router
+
+Context API
+
+Tailwind CSS
+
+Backend (simple mock)
+
+Node.js
+
+Express (server.js present)
+
+📁 Project Structure
+Finsaarthi/
+├── src/
+│   ├── component/
+│   │   ├── Layout.jsx
+│   │   ├── Navigation.jsx
+│   │   └── ScholarshipCard.jsx
+│   │
+│   ├── contexts/
+│   │   └── AuthContext.jsx
+│   │
+│   ├── hooks/
+│   │   └── useLocalStorage.js
+│   │
+│   ├── pages/
+│   │   ├── AdminPanel.jsx
+│   │   ├── HomePage.jsx
+│   │   ├── LoginPage.jsx
+│   │   ├── ProfilePage.jsx
+│   │   ├── RegisterPage.jsx
+│   │   ├── ScholarshipsPage.jsx
+│   │   └── StudentDashboard.jsx
+│   │
+│   ├── App.jsx
+│   ├── index.css
+│   └── main.jsx
+│
+├── server.js
+├── tailwind.config.js
+├── postcss.config.js
+├── vite.config.js
+├── index.html
+├── package.json
+└── README.md
+
+📦 Requirements
+
+Node.js 16+
+
+npm or yarn
+
+Git
 
 Optional:
-- Docker (if you prefer containerized runs)
 
-## Installation
+Express backend (server.js)
 
-1. Clone the repository:
+Docker
 
-```bash
-git clone https://github.com/shubhamanand020/Sil.git
-cd Sil
-```
+⬇️ Installation
+git clone https://github.com/shubhamanand020/Finsaarthi.git
+cd Finsaarthi
 
-2. Install dependencies (npm or yarn):
-
-```bash
-# using npm
 npm install
 
-# or using yarn
-yarn install
-```
+🚀 Run the App (Development)
 
-## Build
+Start Vite dev server:
 
-If the project uses TypeScript's compiler (tsc), build with:
-
-```bash
-npm run build
-# or
-yarn build
-```
-
-If there is no build script, you can run tsc directly (requires a tsconfig.json):
-
-```bash
-npx tsc --project tsconfig.json
-```
-
-## Run / Development
-
-Common development workflows:
-
-- Start a dev server (with hot reload if configured):
-
-```bash
 npm run dev
-# or
-yarn dev
-```
 
-- Start the compiled app:
 
-```bash
-npm start
-# or
-yarn start
-```
+The app runs at:
 
-If the repository is a library, you might link it locally:
+http://localhost:5173
 
-```bash
-npm link
-# or
-yarn link
-```
+🏗 Build for Production
+npm run build
 
-## Tests
 
-Look for a test runner (Jest, Mocha, Vitest). Common commands:
+Preview the production build:
 
-```bash
-npm test
-# or
-yarn test
+npm run preview
 
-# run tests in watch mode
-npm run test:watch
-```
+🔐 Authentication (AuthContext)
 
-If there are no test scripts, add tests using your preferred runner (Jest + ts-jest is a common choice for TypeScript).
+Authentication is fully frontend using:
 
-## Linting & Formatting
+AuthContext.jsx
 
-If ESLint and Prettier are used, run:
+LocalStorage persistence
 
-```bash
-npm run lint
-npm run format
-```
+useLocalStorage() custom hook
 
-Or use the configured npm scripts in package.json.
+AuthContext provides:
 
-## Docker
+user
 
-If there is a Dockerfile, build and run with:
+login()
 
-```bash
-docker build -t sil .
-docker run --rm -p 3000:3000 sil
-```
+logout()
 
-Adjust the port and commands according to the actual app.
+register()
 
-## Project structure (recommended)
+📄 Available Pages
+Page	File	Description
+Home	HomePage.jsx	Landing page
+Login	LoginPage.jsx	Auth login
+Register	RegisterPage.jsx	New user signup
+Profile	ProfilePage.jsx	User info & profile settings
+Scholarships	ScholarshipsPage.jsx	List of all scholarships
+Student Dashboard	StudentDashboard.jsx	Student-only UI
+Admin Panel	AdminPanel.jsx	Admin-only UI
+🧩 Components
+Component	Description
+Layout.jsx	Wrapper layout for pages
+Navigation.jsx	App’s navbar
+ScholarshipCard.jsx	UI card for displaying individual scholarships
+🧠 Context & Hooks
+AuthContext
 
-This is a common layout for TypeScript projects. The actual repo may vary.
+Handles authenticated user state.
 
-```
-project-root/
-├─ src/                # TypeScript source files
-├─ dist/               # Compiled JS output (gitignored)
-├─ test/               # Tests
-├─ package.json
-├─ tsconfig.json
-├─ .eslintrc.js
-├─ .prettierrc
-└─ README.md
-```
+useLocalStorage
 
-## Contributing
+Custom hook to sync state with browser storage.
 
-Contributions are welcome. Suggested workflow:
+🎨 Styling
 
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feat/your-feature`.
-3. Make changes and add tests if appropriate.
-4. Run linters and tests locally.
-5. Commit and push: `git push origin feat/your-feature`.
-6. Open a pull request describing your changes.
+The project uses:
 
-Please follow existing code style and add tests for new features or bug fixes.
+Tailwind CSS (configured via tailwind.config.js)
 
-## License
+PostCSS
 
-No license is specified in the repository. If you are the repository owner, consider adding a LICENSE file to make the project's license explicit.
+Custom styling via index.css
 
-## Contact
+🖥 Backend (server.js)
 
-If you need help or want to discuss the project, open an issue or contact the repository owner: @shubhamanand020
+The project contains a lightweight Express server:
+
+node server.js
+
+
+Used for basic API endpoints or static hosting.
+
+🤝 Contributing
+
+Fork the repo
+
+Create a new branch
+
+git checkout -b feature-name
+
+
+Commit + push
+
+Create pull request
+
+Follow existing code style (Tailwind + JSX conventions).
+
+📜 License
+
+No license file is included.
+Consider adding MIT License for open-source distribution.
+
+📫 Contact
+
+Owner: @shubhamanand020
+Issues & discussions: GitHub repository issues tab
