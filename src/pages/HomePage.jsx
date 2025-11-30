@@ -7,10 +7,10 @@ export const HomePage = () => {
   const { user } = useAuth();
 
   const stats = [
-    { icon: <BookOpen className="w-8 h-8" />, label: 'Active Scholarships', value: '50+' },
-    { icon: <Users className="w-8 h-8" />, label: 'Students Helped', value: '10,000+' },
+    { icon: <BookOpen className="w-8 h-8" />, label: 'Active Scholarships', value: '4+' },
+    { icon: <Users className="w-8 h-8" />, label: 'Students Helped', value: '100+' },
     { icon: <TrendingUp className="w-8 h-8" />, label: 'Success Rate', value: '85%' },
-    { icon: <Award className="w-8 h-8" />, label: 'Amount Disbursed', value: '₹5+ Cr' },
+    { icon: <Award className="w-8 h-8" />, label: 'Amount Disbursed', value: '₹5+ Lakh' },
   ];
 
   const features = [
