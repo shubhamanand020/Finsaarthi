@@ -145,7 +145,7 @@ npm run dev
 
 The app runs at:
 
-http://localhost:5173
+[https://finsaarthi-six.vercel.app/]
 
 🏗 Build for Production
 npm run build
