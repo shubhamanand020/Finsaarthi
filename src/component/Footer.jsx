@@ -56,7 +56,7 @@ export const Footer = () => {
             </li>
             <li className="flex items-center space-x-2">
               <MapPin className="w-5 h-5 text-orange-400" />
-              <span>New Delhi, India</span>
+              <span>KLU, Vijayawada, India</span>
             </li>
           </ul>
         </div>
@@ -81,7 +81,7 @@ export const Footer = () => {
             <li className="flex items-center space-x-2">
               <Linkedin className="w-5 h-5 text-orange-400" />
               <a
-                href="https://linkedin.com/in/your-profile"
+                href="https://www.linkedin.com/pulse/finsaarthi-seamless-scholarship-management-platform-shubham-anand-o2llc"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-orange-400"
