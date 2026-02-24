@@ -64,7 +64,7 @@ export const Footer = () => {
         {/* Social / Repo */}
         <div>
           <h3 className="text-lg font-semibold text-white mb-4">
-            Connect With Us
+            To Know More
           </h3>
           <ul className="space-y-3 text-sm">
             <li className="flex items-center space-x-2">
@@ -86,7 +86,7 @@ export const Footer = () => {
                 rel="noreferrer"
                 className="hover:text-orange-400"
               >
-                LinkedIn Profile
+                LinkedIn
               </a>
             </li>
           </ul>
