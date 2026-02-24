@@ -20,7 +20,7 @@ export const Navigation = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
           <img
-            src="https://media1.thehungryjpeg.com/thumbs2/ori_3656790_lz68k1yb3pzbslhunbx7ssq37zdzszv4grwq4t8d_monogram-fs-logo-design.jpg"
+            src="https://t4.ftcdn.net/jpg/04/30/99/51/360_F_430995143_Y8xc25yIRX1Q1X6KOdEBLWxuNV4f8I9X.jpg"
             alt="FinSaarthi Logo"
             className="h-8 w-8 object-contain"
           />
