@@ -168,9 +168,6 @@ npm run start
 ## Deployment Notes
 
 - Live deployment is available on Vercel: [https://finsaarthi-six.vercel.app/](https://finsaarthi-six.vercel.app/)
-- Frontend can be deployed on platforms like Vercel/Netlify from the Vite build output.
-- If using the Express server, deploy as a Node app and ensure `dist/` is generated before startup.
-
 ## Contributing
 
 1. Fork the repository
@@ -182,7 +179,7 @@ Please follow the existing React + Tailwind code style.
 
 ## License
 
-No license file is currently included. Add a license (for example, MIT) if you plan to open-source this project publicly.
+No license file is currently included. 
 
 ## Contact
 
