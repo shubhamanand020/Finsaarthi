@@ -4,13 +4,13 @@ import { Footer } from "./Footer";
 
 export const Layout = ({ children }) => {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-base)', transition: 'background 0.35s ease' }}>
 
       {/* Navigation Bar */}
       <Navigation />
 
       {/* Main Content */}
-      <main className="flex-grow pt-4 pb-10">
+      <main className="flex-grow pb-10">
         {children}
       </main>
 

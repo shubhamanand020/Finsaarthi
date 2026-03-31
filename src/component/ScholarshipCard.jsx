@@ -1,6 +1,5 @@
 import React from 'react';
 import { Calendar, IndianRupee, Building } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 export const ScholarshipCard = ({
   scholarship,
@@ -9,150 +8,129 @@ export const ScholarshipCard = ({
   showActions = true,
   hasApplied = false,
 }) => {
-  const formatAmount = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatAmount = (amount) =>
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 
-  const isDeadlineNear = () => {
-    const deadline = new Date(scholarship.deadline);
-    const today = new Date();
-    const daysLeft = Math.ceil(
-      (deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return daysLeft <= 7 && daysLeft > 0;
-  };
+  const daysLeft = Math.ceil(
+    (new Date(scholarship.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
+  const isExpired    = daysLeft <= 0;
+  const isNear       = daysLeft <= 7 && !isExpired;
 
-  const isExpired = () => {
-    const deadline = new Date(scholarship.deadline);
-    const today = new Date();
-    return deadline < today;
-  };
+  const categoryColor = {
+    'Merit-based': { bg: 'rgba(234,88,12,0.10)', color: '#EA580C' },
+    'Need-based':  { bg: 'rgba(52,199,89,0.12)', color: '#248a3d' },
+  }[scholarship.category] ?? { bg: 'rgba(94,92,230,0.10)', color: '#5e5ce6' };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100"
+    <div
+      className="glass-card"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: 'default',
+        padding: '1.25rem',
+        height: '100%',
+        transition: 'transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s ease',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-4px) scale(1.012)';
+        e.currentTarget.style.boxShadow = '0 16px 40px rgba(234,88,12,0.14), 0 4px 12px rgba(0,0,0,0.08)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = '';
+        e.currentTarget.style.boxShadow = '';
+      }}
     >
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
-              {scholarship.title}
-            </h3>
-            <div className="flex items-center text-gray-600 mb-2">
-              <Building className="w-4 h-4 mr-2" />
-              <span className="text-sm">{scholarship.provider}</span>
-            </div>
-          </div>
-          <div className="flex flex-col items-end">
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                scholarship.category === 'Merit-based'
-                  ? 'bg-blue-100 text-blue-800'
-                  : scholarship.category === 'Need-based'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-purple-100 text-purple-800'
-              }`}
-            >
-              {scholarship.category}
-            </span>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+        <div style={{ flex: 1, marginRight: '0.75rem' }}>
+          <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {scholarship.title}
+          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+            <Building size={13} />
+            {scholarship.provider}
           </div>
         </div>
-
-        {/* Amount */}
-        <div className="flex items-center mb-4">
-          <IndianRupee className="w-5 h-5 text-orange-600 mr-2" />
-          <span className="text-2xl font-bold text-orange-600">
-            {formatAmount(scholarship.amount)}
-          </span>
-        </div>
-
-        {/* Description */}
-        <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-          {scholarship.description}
-        </p>
-
-        {/* Eligibility */}
-        <div className="mb-4">
-          <h4 className="text-sm font-semibold text-gray-900 mb-2">
-            Key Eligibility:
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {scholarship.eligibility.slice(0, 2).map((criteria, index) => (
-              <span
-                key={index}
-                className="px-2 py-1 bg-orange-50 text-orange-700 rounded-full text-xs"
-              >
-                {criteria}
-              </span>
-            ))}
-            {scholarship.eligibility.length > 2 && (
-              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
-                +{scholarship.eligibility.length - 2} more
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Deadline */}
-        <div className="flex items-center mb-6">
-          <Calendar className="w-4 h-4 text-gray-500 mr-2" />
-          <span
-            className={`text-sm ${
-              isExpired()
-                ? 'text-red-600'
-                : isDeadlineNear()
-                ? 'text-orange-600'
-                : 'text-gray-600'
-            }`}
-          >
-            Deadline: {new Date(scholarship.deadline).toLocaleDateString('en-IN')}
-            {isExpired() && ' (Expired)'}
-            {isDeadlineNear() && !isExpired() && ' (Closing Soon!)'}
-          </span>
-        </div>
-
-        {/* Actions */}
-        {showActions && (
-          <div className="flex space-x-3">
-            <button
-              onClick={onView}
-              className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-            >
-              View Details
-            </button>
-
-            {onApply && !isExpired() && (
-              <button
-                onClick={onApply}
-                disabled={hasApplied}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                  hasApplied
-                    ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700'
-                }`}
-              >
-                {hasApplied ? 'Applied' : 'Apply Now'}
-              </button>
-            )}
-          </div>
-        )}
-
-        {isExpired() && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm font-medium">
-              This scholarship application deadline has passed.
-            </p>
-          </div>
-        )}
+        <span style={{ flexShrink: 0, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600, background: categoryColor.bg, color: categoryColor.color }}>
+          {scholarship.category}
+        </span>
       </div>
-    </motion.div>
+
+      {/* Amount */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+        <IndianRupee size={18} style={{ color: '#EA580C' }} />
+        <span style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#EA580C' }}>
+          {formatAmount(scholarship.amount)}
+        </span>
+      </div>
+
+      {/* Description */}
+      <p style={{ margin: '0 0 0.75rem', fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
+        {scholarship.description}
+      </p>
+
+      {/* Eligibility pills */}
+      <div style={{ marginBottom: '0.75rem' }}>
+        <p style={{ margin: '0 0 0.4rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Key Eligibility</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+          {scholarship.eligibility.slice(0, 2).map((c, i) => (
+            <span key={i} style={{ padding: '2px 8px', borderRadius: 12, fontSize: '0.7rem', fontWeight: 500, background: 'rgba(234,88,12,0.08)', color: '#EA580C' }}>
+              {c}
+            </span>
+          ))}
+          {scholarship.eligibility.length > 2 && (
+            <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: '0.7rem', color: 'var(--text-tertiary)', background: 'var(--bg-elevated)' }}>
+              +{scholarship.eligibility.length - 2} more
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Deadline */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem', fontSize: '0.8rem', color: isExpired ? '#ff3b30' : isNear ? '#EA580C' : 'var(--text-secondary)' }}>
+        <Calendar size={13} />
+        Deadline: {new Date(scholarship.deadline).toLocaleDateString('en-IN')}
+        {isExpired && <span style={{ fontWeight: 600 }}> · Expired</span>}
+        {isNear && !isExpired && <span style={{ fontWeight: 600 }}> · {daysLeft}d left</span>}
+      </div>
+
+      {/* Actions */}
+      {showActions && (
+        <div style={{ display: 'flex', gap: '0.6rem', marginTop: 'auto' }}>
+          <button
+            onClick={onView}
+            className="apple-btn apple-btn-secondary"
+            style={{ flex: 1, justifyContent: 'center', fontSize: '0.82rem', padding: '0.5rem' }}
+          >
+            View Details
+          </button>
+
+          {onApply && !isExpired && (
+            <button
+              onClick={onApply}
+              disabled={hasApplied}
+              className={hasApplied ? '' : 'apple-btn apple-btn-primary'}
+              style={hasApplied ? {
+                flex: 1, padding: '0.5rem',
+                background: 'rgba(52,199,89,0.12)', color: '#248a3d',
+                border: '1px solid rgba(52,199,89,0.25)',
+                borderRadius: 50, fontSize: '0.82rem', fontWeight: 600,
+                cursor: 'not-allowed',
+              } : { flex: 1, justifyContent: 'center', fontSize: '0.82rem', padding: '0.5rem' }}
+            >
+              {hasApplied ? '✓ Applied' : 'Apply Now'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {isExpired && (
+        <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', borderRadius: 10, background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.18)', fontSize: '0.78rem', color: '#ff3b30', fontWeight: 500 }}>
+          Application deadline has passed.
+        </div>
+      )}
+    </div>
   );
 };

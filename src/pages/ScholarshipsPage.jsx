@@ -1,395 +1,320 @@
-import React, { useState, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import { ScholarshipCard } from "../component/ScholarshipCard";
-import { Search, BookOpen } from "lucide-react";
+import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { ScholarshipCard } from '../component/ScholarshipCard';
+import { useScrollReveal } from '../hooks/useScrollReveal';
+import { Search, BookOpen, X, SlidersHorizontal } from 'lucide-react';
+
+/* ── reusable Apple-style modal ── */
+const Modal = ({ children, onClose }) => createPortal(
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.2, ease: 'easeInOut' }}
+    onClick={onClose}
+    style={{
+      position: 'fixed', inset: 0, zIndex: 9000,
+      background: 'rgba(0,0,0,0.45)',
+      backdropFilter: 'blur(5px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1rem',
+    }}
+  >
+    <motion.div
+      initial={{ scale: 0.96, y: 15 }}
+      animate={{ scale: 1, y: 0 }}
+      exit={{ scale: 0.96, y: 15 }}
+      transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+      onClick={e => e.stopPropagation()}
+      style={{
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--borderStrong)',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+        borderRadius: 24,
+        maxWidth: 620, width: '100%', maxHeight: '88vh', overflowY: 'auto', position: 'relative', padding: '2rem'
+      }}
+    >
+      <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-surface)', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0.4rem', borderRadius: '50%', display: 'flex', alignItems: 'center' }}>
+        <X size={18} />
+      </button>
+      {children}
+    </motion.div>
+  </motion.div>,
+  document.body
+);
+
+/* ── reusable Apple-style form input ── */
+const FormField = ({ label, children }) => (
+  <div>
+    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.02em' }}>
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+const formInput = {
+  width: '100%', padding: '0.65rem 0.9rem',
+  background: 'var(--input-bg)', border: '1px solid var(--input-border)',
+  borderRadius: 10, color: 'var(--text-primary)', fontSize: '0.9rem',
+  outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s',
+};
 
 export const ScholarshipsPage = () => {
   const { user } = useAuth();
-  const {
-    getActiveScholarships,
-    hasUserApplied,
-    addApplication,
-    getScholarshipById,
-  } = useLocalStorage();
+  const { getActiveScholarships, hasUserApplied, addApplication, getScholarshipById } = useLocalStorage();
   const navigate = useNavigate();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [sortBy, setSortBy] = useState("deadline");
+  const [searchTerm, setSearchTerm]           = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [sortBy, setSortBy]                   = useState('deadline');
+
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsData, setDetailsData]           = useState(null);
 
   const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [selectedScholarship, setSelectedScholarship] = useState(null);
-
+  const [selectedScholarship, setSelectedScholarship]   = useState(null);
   const [applicationForm, setApplicationForm] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: "",
-    address: "",
-    education: "",
-    gpa: 0,
-    documents: [],
+    name: user?.name || '', email: user?.email || '',
+    phone: '', address: '', education: '', gpa: 0,
   });
 
-  // 👉 States for View Details Modal
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [detailsData, setDetailsData] = useState(null);
+  const cardsRef = useScrollReveal(0.06);
 
   const scholarships = getActiveScholarships();
+  const categories   = [...new Set(scholarships.map(s => s.category))];
 
-  const filteredScholarships = useMemo(() => {
-    let filtered = scholarships.filter((sch) => {
-      const matchesSearch =
-        sch.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sch.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sch.provider.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesCategory =
-        selectedCategory === "" || sch.category === selectedCategory;
-
-      return matchesSearch && matchesCategory;
+  const filtered = useMemo(() => {
+    let list = scholarships.filter(s => {
+      const term = searchTerm.toLowerCase();
+      return (
+        (s.title.toLowerCase().includes(term) || s.description.toLowerCase().includes(term) || s.provider.toLowerCase().includes(term)) &&
+        (selectedCategory === '' || s.category === selectedCategory)
+      );
     });
-
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "amount":
-          return b.amount - a.amount;
-        case "deadline":
-          return new Date(a.deadline) - new Date(b.deadline);
-        case "title":
-          return a.title.localeCompare(b.title);
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
+    list.sort((a, b) =>
+      sortBy === 'amount'   ? b.amount - a.amount :
+      sortBy === 'deadline' ? new Date(a.deadline) - new Date(b.deadline) :
+      a.title.localeCompare(b.title)
+    );
+    return list;
   }, [scholarships, searchTerm, selectedCategory, sortBy]);
 
-  const categories = [...new Set(scholarships.map((s) => s.category))];
-
-  // 👉 VIEW DETAILS HANDLER (Modal)
-  const handleViewDetails = (scholarshipId) => {
-    const scholarship = getScholarshipById(scholarshipId);
-    if (!scholarship) return;
-
-    setDetailsData(scholarship);
+  const handleViewDetails = id => {
+    const s = getScholarshipById(id);
+    if (!s) return;
+    setDetailsData(s);
     setShowDetailsModal(true);
   };
 
-  // APPLY FLOW
-  const handleApply = (scholarshipId) => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-    setSelectedScholarship(scholarshipId);
+  const handleApply = id => {
+    if (!user) { navigate('/login'); return; }
+    setSelectedScholarship(id);
     setShowApplicationModal(true);
+    setShowDetailsModal(false);
   };
 
-  const handleSubmitApplication = (e) => {
+  const handleSubmit = e => {
     e.preventDefault();
     if (!user || !selectedScholarship) return;
-
-    addApplication({
-      studentId: user.id,
-      scholarshipId: selectedScholarship,
-      status: "pending",
-      studentDetails: applicationForm,
-    });
-
+    addApplication({ studentId: user.id, scholarshipId: selectedScholarship, status: 'pending', studentDetails: applicationForm });
     setShowApplicationModal(false);
     setSelectedScholarship(null);
-
-    setApplicationForm({
-      name: user.name,
-      email: user.email,
-      phone: "",
-      address: "",
-      education: "",
-      gpa: 0,
-      documents: [],
-    });
-
-    alert("Application submitted successfully!");
+    setApplicationForm({ name: user.name, email: user.email, phone: '', address: '', education: '', gpa: 0 });
+    alert('Application submitted successfully!');
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+  const selectStyle = { ...formInput, cursor: 'pointer' };
 
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Available Scholarships</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+  return (
+    <div className="page-enter" style={{ minHeight: '100vh', background: 'var(--bg-base)', padding: '3rem 1.5rem', transition: 'background 0.35s ease' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+        {/* ── Page header ── */}
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <p className="section-label">Opportunities</p>
+          <h1 style={{ fontSize: 'clamp(2rem, 4vw, 2.8rem)', fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
+            Available <span className="text-gradient">Scholarships</span>
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: '52ch', margin: '0 auto' }}>
             Discover scholarship opportunities that match your profile and educational goals.
-            Apply now to secure funding for your academic journey.
           </p>
         </div>
 
-        {/* Search + Filters */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border">
-          <div className="flex flex-col md:flex-row gap-4">
-
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+        {/* ── Search + Filters ── */}
+        <div className="glass-card" style={{ marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+            {/* Search + Categories Icon */}
+            <div style={{ flex: '1 1 260px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Search size={16} style={{ position: 'absolute', left: 14, color: 'var(--text-tertiary)', pointerEvents: 'none', zIndex: 2 }} />
               <input
                 type="text"
-                placeholder="Search scholarships..."
+                placeholder="Search scholarships…"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ ...formInput, paddingLeft: '2.6rem', paddingRight: '3.5rem' }}
+                className="apple-input"
               />
+              
+              {/* Category Dropdown (Invisible select over an icon) */}
+              <div
+                style={{
+                  position: 'absolute', right: 8, zIndex: 3,
+                  width: 34, height: 34, borderRadius: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: selectedCategory ? 'rgba(234,88,12,0.1)' : 'var(--bg-elevated)',
+                  color: selectedCategory ? '#EA580C' : 'var(--text-secondary)',
+                  border: `1px solid ${selectedCategory ? 'rgba(234,88,12,0.2)' : 'var(--border)'}`,
+                  cursor: 'pointer', transition: 'all 0.2s'
+                }}
+                title="Filter by Category"
+              >
+                <SlidersHorizontal size={15} />
+                <select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
             </div>
 
-            {/* Category */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-
-            {/* Sort */}
+            {/* Sort Dropdown */}
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
+              onChange={e => setSortBy(e.target.value)}
+              style={{ ...selectStyle, width: 'auto', flexShrink: 0, paddingRight: '2rem' }}
+              className="apple-input"
             >
-              <option value="deadline">Sort by Deadline</option>
-              <option value="amount">Sort by Amount</option>
-              <option value="title">Sort by Title</option>
+              <option value="deadline">Sort: Deadline</option>
+              <option value="amount">Sort: Amount</option>
+              <option value="title">Sort: Title</option>
             </select>
-
           </div>
         </div>
 
-        {/* Count */}
-        <div className="flex justify-between mb-6">
-          <p className="text-gray-600">
-            Showing {filteredScholarships.length} of {scholarships.length} scholarships
+        {/* ── Count row ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: 0 }}>
+            Showing <strong style={{ color: 'var(--text-primary)' }}>{filtered.length}</strong> of {scholarships.length} scholarships
           </p>
-
           {!user && (
-            <p className="text-sm text-gray-600">
-              <Link to="/login" className="text-orange-600 font-medium hover:text-orange-700">
-                Login to apply
-              </Link>
-            </p>
+            <Link to="/login" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#EA580C', textDecoration: 'none' }}>
+              Login to apply →
+            </Link>
           )}
         </div>
 
-        {/* Scholarships Grid */}
-        {filteredScholarships.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredScholarships.map((sch) => (
-              <ScholarshipCard
-                key={sch.id}
-                scholarship={sch}
-                onApply={user ? () => handleApply(sch.id) : undefined}
-                onView={() => handleViewDetails(sch.id)}
-                hasApplied={user ? hasUserApplied(user.id, sch.id) : false}
-              />
+        {/* ── Grid ── */}
+        {filtered.length > 0 ? (
+          <div
+            ref={cardsRef}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}
+          >
+            {filtered.map((s, i) => (
+              <div key={s.id} data-reveal style={{ '--reveal-delay': `${i * 0.06}s` }}>
+                <ScholarshipCard
+                  scholarship={s}
+                  onApply={user ? () => handleApply(s.id) : undefined}
+                  onView={() => handleViewDetails(s.id)}
+                  hasApplied={user ? hasUserApplied(user.id, s.id) : false}
+                />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <BookOpen className="mx-auto h-16 w-16 text-gray-400 mb-6" />
-            <h3 className="text-2xl font-semibold">No scholarships found</h3>
-            <p className="text-gray-600">Try adjusting your search or filters.</p>
+          <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
+            <div className="icon-pill" style={{ margin: '0 auto 1.25rem', width: 64, height: 64, borderRadius: '50%' }}>
+              <BookOpen size={28} />
+            </div>
+            <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, marginBottom: '0.5rem' }}>No scholarships found</h3>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Try adjusting your search or filters.</p>
           </div>
         )}
       </div>
 
-      {/* ⭐ VIEW DETAILS MODAL */}
-      {showDetailsModal && detailsData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full shadow-xl p-6 relative">
+      {/* ── View Details Modal ── */}
+      <AnimatePresence>
+        {showDetailsModal && detailsData && (
+          <Modal onClose={() => setShowDetailsModal(false)}>
+          <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)', paddingRight: '2rem' }}>
+            {detailsData.title}
+          </h2>
+          <p style={{ margin: '0 0 0.75rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+            by <strong style={{ color: 'var(--text-primary)' }}>{detailsData.provider}</strong>
+          </p>
+          <p style={{ margin: '0 0 1rem', fontSize: '1.6rem', fontWeight: 800, color: '#EA580C', letterSpacing: '-0.03em' }}>
+            ₹{detailsData.amount.toLocaleString('en-IN')}
+          </p>
+          <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            Deadline: <strong style={{ color: 'var(--text-primary)' }}>{new Date(detailsData.deadline).toLocaleDateString('en-IN')}</strong>
+          </p>
 
-            {/* Close */}
-            <button
-              className="absolute top-3 right-3 text-gray-600 hover:text-black"
-              onClick={() => setShowDetailsModal(false)}
-            >
-              ✕
-            </button>
+          <h4 style={{ margin: '0 0 0.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>Description</h4>
+          <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.7 }}>{detailsData.description}</p>
 
-            <h2 className="text-2xl font-bold mb-2">{detailsData.title}</h2>
+          <h4 style={{ margin: '0 0 0.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>Eligibility</h4>
+          <ul style={{ margin: '0 0 1rem', paddingLeft: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.8 }}>
+            {detailsData.eligibility.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
 
-            <p className="text-gray-600 mb-4">
-              Provider: <span className="font-medium">{detailsData.provider}</span>
-            </p>
+          <h4 style={{ margin: '0 0 0.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>Required Documents</h4>
+          <ul style={{ margin: '0 0 1.5rem', paddingLeft: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.8 }}>
+            {detailsData.requirements.map((d, i) => <li key={i}>{d}</li>)}
+          </ul>
 
-            <p className="text-orange-600 text-xl font-semibold mb-4">
-              ₹{detailsData.amount.toLocaleString("en-IN")}
-            </p>
-
-            <p className="text-gray-700 mb-4">
-              Deadline:{" "}
-              <span className="font-medium">
-                {new Date(detailsData.deadline).toLocaleDateString("en-IN")}
-              </span>
-            </p>
-
-            <h3 className="font-semibold text-lg mb-2">Description</h3>
-            <p className="text-gray-700 mb-4">{detailsData.description}</p>
-
-            <h3 className="font-semibold text-lg mb-2">Eligibility</h3>
-            <ul className="list-disc ml-5 mb-4 text-gray-700">
-              {detailsData.eligibility.map((e, i) => (
-                <li key={i}>{e}</li>
-              ))}
-            </ul>
-
-            <h3 className="font-semibold text-lg mb-2">Required Documents</h3>
-            <ul className="list-disc ml-5 mb-4 text-gray-700">
-              {detailsData.requirements.map((doc, i) => (
-                <li key={i}>{doc}</li>
-              ))}
-            </ul>
-
-            <p className="text-gray-700 mb-4">
-              Category:{" "}
-              <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
-                {detailsData.category}
-              </span>
-            </p>
-
-            {user && user.role === "student" && (
-              <button
-                onClick={() => handleApply(detailsData.id)}
-                className="w-full mt-4 px-5 py-3 bg-orange-600 text-white text-lg rounded-lg hover:bg-orange-700 transition"
-              >
-                Apply Now
-              </button>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={() => setShowDetailsModal(false)} className="apple-btn apple-btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>Close</button>
+            {user?.role === 'student' && !hasUserApplied(user.id, detailsData.id) && (
+              <button onClick={() => handleApply(detailsData.id)} className="apple-btn apple-btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Apply Now</button>
             )}
           </div>
-        </div>
-      )}
+        </Modal>
+        )}
+      </AnimatePresence>
 
-      {/* APPLY MODAL */}
-      {showApplicationModal && selectedScholarship && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold mb-6">Apply for Scholarship</h2>
-
-              <form onSubmit={handleSubmitApplication} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={applicationForm.name}
-                      onChange={(e) =>
-                        setApplicationForm({ ...applicationForm, name: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Email</label>
-                    <input
-                      type="email"
-                      required
-                      value={applicationForm.email}
-                      onChange={(e) =>
-                        setApplicationForm({ ...applicationForm, email: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Phone</label>
-                    <input
-                      type="tel"
-                      required
-                      value={applicationForm.phone}
-                      onChange={(e) =>
-                        setApplicationForm({ ...applicationForm, phone: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">GPA</label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={applicationForm.gpa}
-                      onChange={(e) =>
-                        setApplicationForm({
-                          ...applicationForm,
-                          gpa: parseFloat(e.target.value),
-                        })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Address</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={applicationForm.address}
-                    onChange={(e) =>
-                      setApplicationForm({ ...applicationForm, address: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Education</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={applicationForm.education}
-                    onChange={(e) =>
-                      setApplicationForm({ ...applicationForm, education: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowApplicationModal(false)}
-                    className="px-6 py-2 border rounded-lg"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-orange-600 text-white rounded-lg"
-                  >
-                    Submit Application
-                  </button>
-                </div>
-              </form>
-
+      {/* ── Application Modal ── */}
+      <AnimatePresence>
+        {showApplicationModal && selectedScholarship && (
+          <Modal onClose={() => setShowApplicationModal(false)}>
+          <h2 style={{ margin: '0 0 1.5rem', fontSize: '1.3rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)', paddingRight: '2rem' }}>
+            Apply for Scholarship
+          </h2>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <FormField label="FULL NAME">
+                <input type="text" required value={applicationForm.name} onChange={e => setApplicationForm({ ...applicationForm, name: e.target.value })} style={formInput} />
+              </FormField>
+              <FormField label="EMAIL">
+                <input type="email" required value={applicationForm.email} onChange={e => setApplicationForm({ ...applicationForm, email: e.target.value })} style={formInput} />
+              </FormField>
+              <FormField label="PHONE">
+                <input type="tel" required value={applicationForm.phone} onChange={e => setApplicationForm({ ...applicationForm, phone: e.target.value })} style={formInput} />
+              </FormField>
+              <FormField label="GPA / PERCENTAGE">
+                <input type="number" required min="0" max="100" step="0.01" value={applicationForm.gpa} onChange={e => setApplicationForm({ ...applicationForm, gpa: parseFloat(e.target.value) })} style={formInput} />
+              </FormField>
             </div>
-          </div>
-        </div>
-      )}
+            <FormField label="ADDRESS">
+              <textarea required rows={3} value={applicationForm.address} onChange={e => setApplicationForm({ ...applicationForm, address: e.target.value })} style={{ ...formInput, resize: 'vertical' }} />
+            </FormField>
+            <FormField label="EDUCATIONAL BACKGROUND">
+              <textarea required rows={3} value={applicationForm.education} onChange={e => setApplicationForm({ ...applicationForm, education: e.target.value })} style={{ ...formInput, resize: 'vertical' }} />
+            </FormField>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button type="button" onClick={() => setShowApplicationModal(false)} className="apple-btn apple-btn-secondary">Cancel</button>
+              <button type="submit" className="apple-btn apple-btn-primary">Submit Application</button>
+            </div>
+          </form>
+        </Modal>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,94 +1,73 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { BookOpen, Users, TrendingUp, Award, ArrowRight, Star } from 'lucide-react';
+import { BookOpen, Users, TrendingUp, Award, ArrowRight, Star, Zap, Shield } from 'lucide-react';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 
 export const HomePage = () => {
   const { user } = useAuth();
 
+  /* Each section gets its own reveal scope */
+  const statsRef    = useScrollReveal(0.12);
+  const featuresRef = useScrollReveal(0.08);
+  const ctaRef      = useScrollReveal(0.15);
+
   const stats = [
-    { icon: <BookOpen className="w-8 h-8" />, label: 'Active Scholarships', value: '4+' },
-    { icon: <Users className="w-8 h-8" />, label: 'Students Helped', value: '100+' },
-    { icon: <TrendingUp className="w-8 h-8" />, label: 'Success Rate', value: '85%' },
-    { icon: <Award className="w-8 h-8" />, label: 'Amount Disbursed', value: '₹5+ Lakh' },
+    { icon: <BookOpen size={22} />, label: 'Active Scholarships', value: '4+' },
+    { icon: <Users size={22} />,    label: 'Students Helped',     value: '100+' },
+    { icon: <TrendingUp size={22} />, label: 'Success Rate',      value: '85%' },
+    { icon: <Award size={22} />,    label: 'Amount Disbursed',    value: '₹5L+' },
   ];
 
   const features = [
-    {
-      title: 'Easy Application Process',
-      description: 'Simple, streamlined application forms that save your time and effort.',
-      icon: <BookOpen className="w-6 h-6" />,
-    },
-    {
-      title: 'Real-time Status Tracking',
-      description: 'Track your application status and get updates instantly.',
-      icon: <TrendingUp className="w-6 h-6" />,
-    },
-    {
-      title: 'Personalized Recommendations',
-      description: 'Get scholarship recommendations based on your profile and eligibility.',
-      icon: <Star className="w-6 h-6" />,
-    },
-    {
-      title: 'Expert Support',
-      description: '24/7 support from our team of education financing experts.',
-      icon: <Users className="w-6 h-6" />,
-    },
+    { icon: <Zap size={20} />,       title: 'Easy Application',   desc: 'Simple, streamlined forms that save your time and effort.' },
+    { icon: <TrendingUp size={20} />, title: 'Real-time Tracking', desc: 'Track your application status and get instant updates.' },
+    { icon: <Star size={20} />,      title: 'Smart Matches',      desc: 'AI-powered recommendations based on your profile.' },
+    { icon: <Shield size={20} />,    title: 'Expert Support',     desc: '24 / 7 guidance from education financing experts.' },
   ];
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200 py-20 overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src="https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop"
-            alt="Student reading in library"
-            className="w-full h-full object-cover opacity-20"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-900/20 to-orange-600/10"></div>
-        </div>
+    <div className="page-enter">
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      {/* ══════════════════════════════════
+          HERO
+      ══════════════════════════════════ */}
+      <section className="hero-section">
+        <div className="hero-orb hero-orb-1" />
+        <div className="hero-orb hero-orb-2" />
+        <div className="hero-orb hero-orb-3" />
 
-            {/* Left Text */}
-            <div className="text-center lg:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Your Gateway to
-                <span className="bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent block">
-                  Educational Excellence
-                </span>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '4rem 1.5rem', width: '100%', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', alignItems: 'center' }}>
+
+            {/* Left — text (hero is always visible, no reveal needed) */}
+            <div>
+              <div className="hero-chip" style={{ marginBottom: '1.5rem', display: 'inline-flex' }}>
+                <div className="hero-chip-dot" />
+                Scholarship Platform for India
+              </div>
+
+              <h1 className="hero-heading" style={{ marginBottom: '1.25rem' }}>
+                Your Gateway to{' '}
+                <span className="hero-heading-gradient">Educational<br />Excellence</span>
               </h1>
 
-              <p className="text-xl text-gray-700 mb-8 max-w-2xl mx-auto lg:mx-0">
+              <p className="hero-sub" style={{ marginBottom: '2.25rem' }}>
                 Discover, apply, and secure scholarships that match your dreams.
                 FinSaarthi connects deserving students with life-changing educational opportunities.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                 {user ? (
-                  <Link
-                    to="/dashboard"
-                    className="bg-gradient-to-r from-orange-600 to-orange-700 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center group"
-                  >
-                    Go to Dashboard
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <Link to="/dashboard" className="apple-btn apple-btn-primary">
+                    Go to Dashboard <ArrowRight size={16} />
                   </Link>
                 ) : (
                   <>
-                    <Link
-                      to="/login"
-                      className="bg-gradient-to-r from-orange-600 to-orange-700 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center group"
-                    >
-                      Get Started
-                      <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <Link to="/login" className="apple-btn apple-btn-primary">
+                      Get Started <ArrowRight size={16} />
                     </Link>
-
-                    <Link
-                      to="/scholarships"
-                      className="bg-white text-orange-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-all duration-300 border-2 border-orange-200 hover:border-orange-300 shadow-lg"
-                    >
+                    <Link to="/scholarships" className="apple-btn apple-btn-secondary">
                       Browse Scholarships
                     </Link>
                   </>
@@ -96,29 +75,32 @@ export const HomePage = () => {
               </div>
             </div>
 
-            {/* Right Hero Card */}
-            <div className="relative">
-              <div className="bg-white rounded-2xl shadow-2xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-500">
+            {/* Right — image card */}
+            <div style={{ position: 'relative', paddingBottom: '2rem' }}>
+              <div className="hero-img-card" style={{ transform: 'rotate(2deg)' }}>
                 <img
                   src="https://images.pexels.com/photos/1438081/pexels-photo-1438081.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop"
                   alt="Student studying"
-                  className="w-full h-64 object-cover rounded-xl mb-4"
+                  style={{ width: '100%', height: 280, objectFit: 'cover', display: 'block' }}
                 />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Success Story</h3>
-                <p className="text-gray-600">
-                  "FinSaarthi helped me secure a scholarship worth ₹2 lakhs for my engineering degree.
-                  The process was seamless and the support was incredible!"
-                </p>
-
-                <div className="flex items-center mt-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold">
-                    P
-                  </div>
-                  <div className="ml-3">
-                    <p className="font-semibold text-gray-900">Ayush Sharma</p>
-                    <p className="text-sm text-gray-600">Computer Engineering Student</p>
+                <div style={{ padding: '1.25rem 1.5rem' }}>
+                  <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>
+                    "FinSaarthi helped me secure ₹2 lakhs for my engineering degree. The process was seamless!"
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.9rem' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--btn-primary-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0 }}>
+                      A
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Ayush Sharma</p>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Computer Engineering Student</p>
+                    </div>
                   </div>
                 </div>
+              </div>
+              <div className="hero-badge">
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>🎓 2,000+ Students</p>
+                <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: 2 }}>secured scholarships this year</p>
               </div>
             </div>
 
@@ -126,42 +108,86 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center group">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {stat.icon}
-                </div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</h3>
-                <p className="text-gray-600 text-sm">{stat.label}</p>
+      {/* ══════════════════════════════════
+          STATS  — scroll reveal
+      ══════════════════════════════════ */}
+      <section
+        ref={statsRef}
+        style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '3.5rem 1.5rem', transition: 'background 0.35s ease' }}
+      >
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem' }}>
+          {stats.map((s, i) => (
+            <div
+              key={i}
+              data-reveal
+              className="stat-card"
+              style={{ textAlign: 'center', '--reveal-delay': `${i * 0.08}s` }}
+            >
+              {/* Icon — pops with elastic bounce */}
+              <div
+                data-reveal="icon"
+                className="icon-pill"
+                style={{ margin: '0 auto 1rem', borderRadius: '50%', width: 52, height: 52, '--reveal-delay': `${i * 0.08 + 0.05}s` }}
+              >
+                {s.icon}
               </div>
-            ))}
-          </div>
+
+              {/* Number */}
+              <div
+                data-reveal="stat"
+                style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)', lineHeight: 1, marginBottom: '0.35rem', '--reveal-delay': `${i * 0.08 + 0.12}s` }}
+              >
+                {s.value}
+              </div>
+
+              {/* Label */}
+              <div
+                data-reveal="text"
+                style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500, '--reveal-delay': `${i * 0.08 + 0.18}s` }}
+              >
+                {s.label}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ══════════════════════════════════
+          FEATURES  — scroll reveal
+      ══════════════════════════════════ */}
+      <section style={{ padding: '6rem 1.5rem', background: 'var(--bg-base)', transition: 'background 0.35s ease' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose FinSaarthi?</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We've built a comprehensive platform that makes finding and applying for scholarships easier than ever before.
-            </p>
-          </div>
+          {/* Section heading — its own reveal scope so it animates independently */}
+          <FeatureHeading />
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl mb-6">
-                  {feature.icon}
+          {/* Cards grid */}
+          <div
+            ref={featuresRef}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}
+          >
+            {features.map((f, i) => (
+              <div
+                key={i}
+                data-reveal
+                className="feature-card"
+                style={{ '--reveal-delay': `${i * 0.1}s` }}
+              >
+                {/* icon bounces separately */}
+                <div
+                  data-reveal="icon"
+                  className="icon-pill"
+                  style={{ '--reveal-delay': `${i * 0.1 + 0.08}s` }}
+                >
+                  {f.icon}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                  {f.title}
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  {f.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -169,37 +195,66 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-orange-600 to-orange-700">
-        <div className="max-w-4xl mx-auto text-center px-4">
+      {/* ══════════════════════════════════
+          CTA  — scroll reveal
+      ══════════════════════════════════ */}
+      <section className="cta-section" ref={ctaRef}>
+        <div className="hero-orb" style={{ width: 400, height: 400, top: -100, left: '10%', position: 'absolute', background: 'var(--orb-1)' }} />
+        <div className="hero-orb" style={{ width: 300, height: 300, bottom: -80, right: '15%', position: 'absolute', background: 'var(--orb-2)' }} />
 
-          <h2 className="text-4xl font-bold text-white mb-6">Ready to Start Your Journey?</h2>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 560, margin: '0 auto' }}>
+          <p data-reveal="text" className="section-label">Get Started Today</p>
 
-          <p className="text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of students who have already found their perfect scholarship match through FinSaarthi.
+          <h2
+            data-reveal
+            style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, letterSpacing: '-0.04em', marginBottom: '1rem', lineHeight: 1.1, color: 'var(--text-primary)', '--reveal-delay': '0.1s' }}
+          >
+            Ready to start your{' '}
+            <span className="cta-gradient-text">scholarship journey?</span>
+          </h2>
+
+          <p
+            data-reveal="text"
+            style={{ color: 'var(--text-secondary)', marginBottom: '2.25rem', fontSize: '1rem', '--reveal-delay': '0.18s' }}
+          >
+            Join thousands of students who've already found their perfect scholarship match.
           </p>
 
           {!user && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/register"
-                className="bg-white text-orange-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-all duration-300 shadow-lg"
-              >
-                Create Account
-              </Link>
-
-              <Link
-                to="/login"
-                className="bg-orange-800 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-orange-900 transition-all duration-300 shadow-lg"
-              >
-                Login
-              </Link>
+            <div
+              data-reveal
+              style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', '--reveal-delay': '0.26s' }}
+            >
+              <Link to="/register" className="apple-btn apple-btn-primary">Create Free Account</Link>
+              <Link to="/login"    className="apple-btn apple-btn-secondary">Sign In</Link>
             </div>
           )}
-
         </div>
       </section>
 
     </div>
   );
 };
+
+/* ── Feature section heading — own reveal scope ── */
+function FeatureHeading() {
+  const ref = useScrollReveal(0.2);
+  return (
+    <div ref={ref} style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+      <p data-reveal="text" className="section-label">Why FinSaarthi?</p>
+      <h2
+        data-reveal
+        style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: '0.75rem', '--reveal-delay': '0.08s' }}
+      >
+        Everything you need,{' '}
+        <span className="text-gradient">nothing you don't.</span>
+      </h2>
+      <p
+        data-reveal="text"
+        style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: '50ch', margin: '0 auto', '--reveal-delay': '0.14s' }}
+      >
+        A comprehensive platform built to make scholarship discovery and application effortless.
+      </p>
+    </div>
+  );
+}

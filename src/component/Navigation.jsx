@@ -1,153 +1,196 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { Menu, X } from "lucide-react";
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 
 export const Navigation = () => {
   const { user, logout } = useAuth();
-  const [isOpen, setIsOpen] = React.useState(false);
+  const { theme, toggle } = useTheme();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [dropOpen, setDropOpen] = useState(false);
   const navigate = useNavigate();
+  const dropRef = useRef(null);
+
+  /* close dropdown on outside click */
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) {
+        setDropOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+    setMobileOpen(false);
   };
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-
-        {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2">
+    <nav className="nav-bar">
+      <div
+        style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 1.25rem',
+          height: '64px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+        }}
+      >
+        {/* ── Logo ── */}
+        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <img
             src="https://t4.ftcdn.net/jpg/04/30/99/51/360_F_430995143_Y8xc25yIRX1Q1X6KOdEBLWxuNV4f8I9X.jpg"
-            alt="FinSaarthi Logo"
-            className="h-8 w-8 object-contain"
+            alt="FinSaarthi"
+            style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 8 }}
           />
-
-          <span className="text-2xl font-bold text-orange-600">
-            FinSaarthi
-          </span>
+          <span className="nav-logo-text">FinSaarthi</span>
         </Link>
 
-
-        {/* Desktop Menu */}
-        <div className="hidden md:flex space-x-8 items-center">
-
-          {/* PUBLIC LINK */}
-          <Link to="/" className="hover:text-orange-600 font-medium">Home</Link>
-
-          {/* STUDENT ONLY LINKS */}
-          {user && user.role === "student" && (
+        {/* ── Desktop Nav ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} className="hidden md:flex">
+          {user?.role === 'student' && (
             <>
-              <Link to="/scholarships" className="hover:text-orange-600 font-medium">
-                Scholarships
-              </Link>
-
-              <Link to="/dashboard" className="hover:text-orange-600 font-medium">
-                Dashboard
-              </Link>
+              <Link to="/scholarships" className="nav-link">Scholarships</Link>
+              <Link to="/dashboard" className="nav-link">Dashboard</Link>
             </>
           )}
-
-          {/* ADMIN ONLY LINK */}
-          {user && user.role === "admin" && (
-            <>
-              <Link to="/admin" className="hover:text-orange-600 font-medium">
-                Admin Panel
-              </Link>
-            </>
+          {user?.role === 'admin' && (
+            <Link to="/admin" className="nav-link">Admin Panel</Link>
           )}
-
-          {/* PROFILE VISIBLE TO BOTH ADMIN + STUDENT */}
-          {user && (
-            <Link to="/profile" className="hover:text-orange-600 font-medium">
-              Profile
-            </Link>
-          )}
-
-          {/* AUTH BUTTONS */}
-          {!user ? (
-            <>
-              <Link to="/login" className="text-orange-600 font-medium">Login</Link>
-              <Link
-                to="/register"
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium"
-              >
-                Register
-              </Link>
-            </>
-          ) : (
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-800 text-white rounded-lg font-medium"
-            >
-              Logout
-            </button>
-          )}
+          {user && <Link to="/profile" className="nav-link">Profile</Link>}
         </div>
 
-        {/* Mobile Menu Button */}
-        <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
-          {isOpen ? <X size={26} /> : <Menu size={26} />}
-        </button>
+        {/* ── Right side ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+          {/* Home — desktop */}
+          <div className="hidden md:block">
+            <Link to="/" className="apple-btn apple-btn-secondary" style={{ padding: '0.5rem 1.1rem', fontSize: '0.875rem' }}>
+              Home
+            </Link>
+          </div>
+
+          {/* Auth — desktop */}
+          <div className="hidden md:block" style={{ position: 'relative' }} ref={dropRef}>
+            {!user ? (
+              <>
+                <button
+                  onClick={() => setDropOpen(v => !v)}
+                  className="apple-btn apple-btn-primary"
+                  style={{ padding: '0.5rem 1.1rem', fontSize: '0.875rem' }}
+                >
+                  Account
+                  <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>▾</span>
+                </button>
+                {dropOpen && (
+                  <div className="nav-dropdown">
+                    <Link to="/login/student" className="nav-dropdown-item" onClick={() => setDropOpen(false)}>
+                      Login as Student
+                    </Link>
+                    <Link to="/login/admin" className="nav-dropdown-item" onClick={() => setDropOpen(false)}>
+                      Login as Admin
+                    </Link>
+                    <div className="nav-dropdown-sep" />
+                    <Link to="/register/student" className="nav-dropdown-item" onClick={() => setDropOpen(false)}>
+                      Register as Student
+                    </Link>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="apple-btn apple-btn-secondary"
+                style={{ padding: '0.5rem 1.1rem', fontSize: '0.875rem' }}
+              >
+                Logout
+              </button>
+            )}
+          </div>
+
+          {/* Theme Toggle */}
+          <button
+            className="theme-toggle"
+            onClick={toggle}
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            aria-label="Toggle theme"
+          >
+            <span className="theme-toggle-knob">
+              {theme === 'light' ? '☀️' : '🌙'}
+            </span>
+          </button>
+
+          {/* Hamburger — mobile */}
+          <button
+            className="md:hidden"
+            onClick={() => setMobileOpen(v => !v)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-primary)',
+              padding: '0.25rem',
+              lineHeight: 0,
+            }}
+          >
+            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="md:hidden bg-white shadow-lg px-4 py-4 space-y-4">
+      {/* ── Mobile Drawer ── */}
+      {mobileOpen && (
+        <div
+          style={{
+            background: 'var(--glass-bg)',
+            borderTop: '1px solid var(--border)',
+            backdropFilter: 'blur(20px)',
+            padding: '1rem 1.25rem 1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.25rem',
+          }}
+          className="md:hidden"
+        >
+          <Link to="/" className="nav-link" onClick={() => setMobileOpen(false)}>Home</Link>
 
-          <Link to="/" className="block hover:text-orange-600 font-medium">
-            Home
-          </Link>
-
-          {/* STUDENT ONLY */}
-          {user && user.role === "student" && (
+          {user?.role === 'student' && (
             <>
-              <Link to="/scholarships" className="block hover:text-orange-600 font-medium">
-                Scholarships
-              </Link>
-              <Link to="/dashboard" className="block hover:text-orange-600 font-medium">
-                Dashboard
-              </Link>
+              <Link to="/scholarships" className="nav-link" onClick={() => setMobileOpen(false)}>Scholarships</Link>
+              <Link to="/dashboard" className="nav-link" onClick={() => setMobileOpen(false)}>Dashboard</Link>
             </>
           )}
-
-          {/* ADMIN ONLY */}
-          {user && user.role === "admin" && (
-            <>
-              <Link to="/admin" className="block hover:text-orange-600 font-medium">
-                Admin Panel
-              </Link>
-            </>
+          {user?.role === 'admin' && (
+            <Link to="/admin" className="nav-link" onClick={() => setMobileOpen(false)}>Admin Panel</Link>
           )}
+          {user && <Link to="/profile" className="nav-link" onClick={() => setMobileOpen(false)}>Profile</Link>}
 
-          {/* PROFILE FOR BOTH */}
-          {user && (
-            <Link to="/profile" className="block hover:text-orange-600 font-medium">
-              Profile
-            </Link>
-          )}
-
-          {/* AUTH BUTTONS */}
-          {!user ? (
-            <>
-              <Link to="/login" className="block text-orange-600 font-medium">Login</Link>
-              <Link
-                to="/register"
-                className="block w-full text-center px-4 py-2 bg-orange-600 text-white rounded-lg font-medium"
-              >
-                Register
-              </Link>
-            </>
-          ) : (
-            <button
-              onClick={handleLogout}
-              className="block w-full px-4 py-2 bg-gray-800 text-white rounded-lg font-medium"
-            >
-              Logout
-            </button>
-          )}
+          <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {!user ? (
+              <>
+                <Link to="/login/student" className="apple-btn apple-btn-primary" style={{ textAlign: 'center' }} onClick={() => setMobileOpen(false)}>
+                  Login as Student
+                </Link>
+                <Link to="/login/admin" className="apple-btn apple-btn-secondary" style={{ textAlign: 'center' }} onClick={() => setMobileOpen(false)}>
+                  Login as Admin
+                </Link>
+                <Link to="/register/student" className="apple-btn apple-btn-secondary" style={{ textAlign: 'center' }} onClick={() => setMobileOpen(false)}>
+                  Register
+                </Link>
+              </>
+            ) : (
+              <button className="apple-btn apple-btn-secondary" onClick={handleLogout} style={{ width: '100%' }}>
+                Logout
+              </button>
+            )}
+          </div>
         </div>
       )}
     </nav>

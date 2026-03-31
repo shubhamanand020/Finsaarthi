@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Eye, EyeOff, BookOpen, AlertCircle } from 'lucide-react';
+import {
+  Eye, EyeOff, AlertCircle,
+  User, Mail, Lock, GraduationCap, Phone,
+} from 'lucide-react';
 
 export const RegisterPage = () => {
   const { login } = useAuth();
@@ -14,233 +18,332 @@ export const RegisterPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    university: '',
+    phone: '',
   });
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [shake, setShake] = useState(false);
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      setError('Please enter your full name.');
-      return false;
-    }
+  /* Password strength */
+  const pwStrength = (() => {
+    const p = formData.password;
+    if (!p) return 0;
+    let score = 0;
+    if (p.length >= 6)  score++;
+    if (p.length >= 10) score++;
+    if (/[A-Z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    return score; // 0-5
+  })();
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const strengthLabel = ['', 'Too weak', 'Weak', 'Fair', 'Strong', 'Very strong'][pwStrength];
+  const strengthColor = ['', '#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#007AFF'][pwStrength];
 
-    if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address.');
-      return false;
-    }
-
-    if (data.users.some(user => user.email === formData.email)) {
-      setError('An account with this email already exists.');
-      return false;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long.');
-      return false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      return false;
-    }
-
-    return true;
+  const triggerShake = (msg) => {
+    setError(msg);
+    setShake(true);
+    setTimeout(() => setShake(false), 420);
   };
 
-  const handleSubmit = async (e) => {
+  const handleChange = (e) => {
+    setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
 
-    if (!validateForm()) return;
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    setIsLoading(true);
+    if (!formData.name.trim()) return triggerShake('Please enter your full name.');
+    if (!emailRe.test(formData.email)) return triggerShake('Please enter a valid email address.');
+    if (data.users.some(u => u.email === formData.email))
+      return triggerShake('An account with this email already exists.');
+    if (formData.password.length < 6) return triggerShake('Password must be at least 6 characters.');
+    if (formData.password !== formData.confirmPassword) return triggerShake('Passwords do not match.');
+    if (!formData.university.trim()) return triggerShake('Please enter your university name.');
+    if (!formData.phone.trim()) return triggerShake('Please enter your phone number.');
 
+    setLoading(true);
     try {
       const newUser = addUser({
         name: formData.name.trim(),
         email: formData.email.toLowerCase(),
         password: formData.password,
         role: 'student',
+        university: formData.university.trim(),
+        phone: formData.phone.trim(),
       });
-
-      login({
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name,
-        role: newUser.role,
-      });
-
+      login({ id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role });
       navigate('/dashboard');
-
-    } catch (err) {
-      setError('An error occurred while creating your account. Please try again.');
-    } finally {
-      setIsLoading(false);
+    } catch {
+      triggerShake('An error occurred while creating your account. Please try again.');
+      setLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
+  /* ── Field definitions ── */
+  const fields = [
+    {
+      id: 'name', name: 'name', type: 'text',
+      label: 'FULL NAME', placeholder: 'Ayush Sharma',
+      icon: <User size={16} />, autoComplete: 'name',
+    },
+    {
+      id: 'email', name: 'email', type: 'email',
+      label: 'EMAIL ADDRESS', placeholder: 'name@university.edu',
+      icon: <Mail size={16} />, autoComplete: 'email',
+    },
+    {
+      id: 'university', name: 'university', type: 'text',
+      label: 'UNIVERSITY', placeholder: 'IIT Bombay, BITS Pilani…',
+      icon: <GraduationCap size={16} />, autoComplete: 'organization',
+    },
+    {
+      id: 'phone', name: 'phone', type: 'tel',
+      label: 'PHONE NUMBER', placeholder: '+91 98765 43210',
+      icon: <Phone size={16} />, autoComplete: 'tel',
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full space-y-8">
+    <div className="login-page page-enter" style={{ alignItems: 'flex-start', paddingTop: '2.5rem', paddingBottom: '2.5rem' }}>
 
-        {/* ICON */}
-        <div>
-          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <BookOpen className="h-8 w-8 text-white" />
+      {/* Ambient orbs */}
+      <div className="hero-orb hero-orb-1" />
+      <div className="hero-orb hero-orb-2" />
+      <div className="hero-orb hero-orb-3" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 28, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className={`login-card ${shake ? 'shake' : ''}`}
+        style={{ maxWidth: 480 }}
+      >
+        {/* ── Header ── */}
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+          <div
+            style={{
+              width: 56, height: 56, borderRadius: 17,
+              background: 'var(--btn-primary-bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 1rem', color: '#fff',
+            }}
+          >
+            <GraduationCap size={26} />
           </div>
-
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Join FinSaarthi Today
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Create your account and start applying for scholarships
+          <h1
+            style={{
+              margin: 0, fontSize: '1.6rem', fontWeight: 800,
+              letterSpacing: '-0.03em', color: 'var(--text-primary)',
+            }}
+          >
+            Create your account
+          </h1>
+          <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            Join FinSaarthi and start applying for scholarships
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-2xl p-8 border border-gray-100">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-
-            {/* ERROR */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-                <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-                <span className="text-red-700 text-sm">{error}</span>
+        {/* ── Error ── */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              key="err"
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginBottom: '1.25rem' }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ duration: 0.22 }}
+            >
+              <div className="error-box">
+                <AlertCircle size={16} />
+                {error}
               </div>
-            )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* FULL NAME */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-              <input
-                name="name"
-                type="text"
-                required
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                placeholder="Enter your full name"
-              />
-            </div>
+        {/* ── Form ── */}
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        >
 
-            {/* EMAIL */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-              <input
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                placeholder="Enter your email"
-              />
-            </div>
-
-            {/* PASSWORD */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-
-              <div className="relative">
-                <input
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  placeholder="Create a password"
-                />
-
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <Eye className="w-5 h-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* CONFIRM PASSWORD */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-
-              <div className="relative">
-                <input
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  placeholder="Confirm your password"
-                />
-
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <Eye className="w-5 h-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* SUBMIT */}
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 text-white rounded-lg font-medium bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 transition-all duration-300 shadow-lg disabled:opacity-50"
+          {/* Regular fields */}
+          {fields.map(f => (
+            <div key={f.id}>
+              <label
+                htmlFor={f.id}
+                style={{
+                  display: 'block', marginBottom: '0.4rem',
+                  fontSize: '0.82rem', fontWeight: 600,
+                  color: 'var(--text-secondary)', letterSpacing: '0.02em',
+                }}
               >
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating Account...
-                  </div>
-                ) : (
-                  'Create Account'
-                )}
+                {f.label}
+              </label>
+              <div className="apple-input-wrap">
+                <span className="apple-input-icon">{f.icon}</span>
+                <input
+                  id={f.id}
+                  name={f.name}
+                  type={f.type}
+                  required
+                  autoComplete={f.autoComplete}
+                  placeholder={f.placeholder}
+                  value={formData[f.name]}
+                  onChange={handleChange}
+                  className="apple-input"
+                />
+              </div>
+            </div>
+          ))}
+
+          {/* Password */}
+          <div>
+            <label
+              htmlFor="password"
+              style={{
+                display: 'block', marginBottom: '0.4rem',
+                fontSize: '0.82rem', fontWeight: 600,
+                color: 'var(--text-secondary)', letterSpacing: '0.02em',
+              }}
+            >
+              PASSWORD
+            </label>
+            <div className="apple-input-wrap">
+              <Lock size={16} className="apple-input-icon" />
+              <input
+                id="password"
+                name="password"
+                type={showPwd ? 'text' : 'password'}
+                required
+                autoComplete="new-password"
+                placeholder="Min. 6 characters"
+                value={formData.password}
+                onChange={handleChange}
+                className="apple-input"
+                style={{ paddingRight: '2.75rem' }}
+              />
+              <button type="button" className="pw-toggle" onClick={() => setShowPwd(v => !v)}>
+                {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
 
-            {/* LOGIN LINK */}
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link
-                  to="/login"
-                  className="text-orange-600 font-medium hover:text-orange-500"
+            {/* Strength bar */}
+            {formData.password && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <div
+                  style={{
+                    display: 'flex', gap: '4px', marginBottom: '0.3rem',
+                  }}
                 >
-                  Sign in here
-                </Link>
-              </p>
-            </div>
+                  {[1,2,3,4,5].map(i => (
+                    <div
+                      key={i}
+                      style={{
+                        flex: 1, height: 3, borderRadius: 4,
+                        background: i <= pwStrength ? strengthColor : 'var(--border)',
+                        transition: 'background 0.3s ease',
+                      }}
+                    />
+                  ))}
+                </div>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: strengthColor, fontWeight: 600 }}>
+                  {strengthLabel}
+                </p>
+              </div>
+            )}
+          </div>
 
-          </form>
-        </div>
-      </div>
+          {/* Confirm Password */}
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              style={{
+                display: 'block', marginBottom: '0.4rem',
+                fontSize: '0.82rem', fontWeight: 600,
+                color: 'var(--text-secondary)', letterSpacing: '0.02em',
+              }}
+            >
+              CONFIRM PASSWORD
+            </label>
+            <div className="apple-input-wrap">
+              <Lock size={16} className="apple-input-icon" />
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirm ? 'text' : 'password'}
+                required
+                autoComplete="new-password"
+                placeholder="Re-enter your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="apple-input"
+                style={{
+                  paddingRight: '2.75rem',
+                  borderColor: formData.confirmPassword
+                    ? formData.password === formData.confirmPassword
+                      ? '#34c759'
+                      : '#ff3b30'
+                    : undefined,
+                }}
+              />
+              <button type="button" className="pw-toggle" onClick={() => setShowConfirm(v => !v)}>
+                {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {/* Match indicator */}
+            {formData.confirmPassword && (
+              <p
+                style={{
+                  margin: '0.3rem 0 0',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: formData.password === formData.confirmPassword ? '#34c759' : '#ff3b30',
+                }}
+              >
+                {formData.password === formData.confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+              </p>
+            )}
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="apple-btn apple-btn-primary"
+            style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center', fontSize: '0.95rem' }}
+          >
+            {loading
+              ? <><span className="btn-spinner" /> Creating account…</>
+              : 'Create Account'
+            }
+          </button>
+
+        </form>
+
+        {/* Footer */}
+        <div className="login-divider">or</div>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
+          Already have an account?{' '}
+          <Link
+            to="/login/student"
+            className="text-gradient"
+            style={{ fontWeight: 700, textDecoration: 'none' }}
+          >
+            Sign in
+          </Link>
+        </p>
+
+      </motion.div>
     </div>
   );
 };
