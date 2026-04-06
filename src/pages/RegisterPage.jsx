@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import apiClient from '../api/client';
 import {
   Eye, EyeOff, AlertCircle,
   User, Mail, Lock, GraduationCap, Phone,
 } from 'lucide-react';
 
 export const RegisterPage = () => {
-  const { login } = useAuth();
-  const { addUser, data } = useLocalStorage();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -33,7 +30,7 @@ export const RegisterPage = () => {
     const p = formData.password;
     if (!p) return 0;
     let score = 0;
-    if (p.length >= 6)  score++;
+    if (p.length >= 8)  score++;
     if (p.length >= 10) score++;
     if (/[A-Z]/.test(p)) score++;
     if (/[0-9]/.test(p)) score++;
@@ -54,35 +51,41 @@ export const RegisterPage = () => {
     setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Updated RFC 5322 Simplified Email Regex
+    const emailRe = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 
     if (!formData.name.trim()) return triggerShake('Please enter your full name.');
     if (!emailRe.test(formData.email)) return triggerShake('Please enter a valid email address.');
-    if (data.users.some(u => u.email === formData.email))
-      return triggerShake('An account with this email already exists.');
-    if (formData.password.length < 6) return triggerShake('Password must be at least 6 characters.');
+    if (formData.password.length < 8) return triggerShake('Password must be at least 8 characters.');
     if (formData.password !== formData.confirmPassword) return triggerShake('Passwords do not match.');
-    if (!formData.university.trim()) return triggerShake('Please enter your university name.');
-    if (!formData.phone.trim()) return triggerShake('Please enter your phone number.');
-
     setLoading(true);
+    
     try {
-      const newUser = addUser({
+      // Real API Call to Backend
+      await apiClient.post('/auth/register', {
         name: formData.name.trim(),
         email: formData.email.toLowerCase(),
         password: formData.password,
-        role: 'student',
-        university: formData.university.trim(),
-        phone: formData.phone.trim(),
       });
-      login({ id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role });
-      navigate('/dashboard');
-    } catch {
-      triggerShake('An error occurred while creating your account. Please try again.');
+
+      const normalizedEmail = formData.email.toLowerCase();
+      sessionStorage.setItem('pendingRegistrationEmail', normalizedEmail);
+      navigate('/register/verify-otp', {
+        state: { email: normalizedEmail },
+      });
+      
+    } catch (err) {
+      console.error("Registration Error:", err);
+      if (err.response && err.response.data && err.response.data.message) {
+        triggerShake(err.response.data.message); // If backend sends specific error
+      } else {
+        triggerShake('An error occurred while creating your account. Please try again.');
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -102,12 +105,12 @@ export const RegisterPage = () => {
     {
       id: 'university', name: 'university', type: 'text',
       label: 'UNIVERSITY', placeholder: 'IIT Bombay, BITS Pilani…',
-      icon: <GraduationCap size={16} />, autoComplete: 'organization',
+      icon: <GraduationCap size={16} />, autoComplete: 'organization', required: false,
     },
     {
       id: 'phone', name: 'phone', type: 'tel',
       label: 'PHONE NUMBER', placeholder: '+91 98765 43210',
-      icon: <Phone size={16} />, autoComplete: 'tel',
+      icon: <Phone size={16} />, autoComplete: 'tel', required: false,
     },
   ];
 
@@ -195,7 +198,7 @@ export const RegisterPage = () => {
                   id={f.id}
                   name={f.name}
                   type={f.type}
-                  required
+                  required={f.required ?? true}
                   autoComplete={f.autoComplete}
                   placeholder={f.placeholder}
                   value={formData[f.name]}
@@ -226,7 +229,7 @@ export const RegisterPage = () => {
                 type={showPwd ? 'text' : 'password'}
                 required
                 autoComplete="new-password"
-                placeholder="Min. 6 characters"
+                placeholder="Min. 8 characters"
                 value={formData.password}
                 onChange={handleChange}
                 className="apple-input"
@@ -240,11 +243,7 @@ export const RegisterPage = () => {
             {/* Strength bar */}
             {formData.password && (
               <div style={{ marginTop: '0.5rem' }}>
-                <div
-                  style={{
-                    display: 'flex', gap: '4px', marginBottom: '0.3rem',
-                  }}
-                >
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '0.3rem' }}>
                   {[1,2,3,4,5].map(i => (
                     <div
                       key={i}
@@ -322,10 +321,7 @@ export const RegisterPage = () => {
             className="apple-btn apple-btn-primary"
             style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center', fontSize: '0.95rem' }}
           >
-            {loading
-              ? <><span className="btn-spinner" /> Creating account…</>
-              : 'Create Account'
-            }
+            {loading ? <><span className="btn-spinner" /> Creating account...</> : 'Create Account & Send OTP'}
           </button>
 
         </form>

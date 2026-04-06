@@ -697,6 +697,22 @@ body {
 /* remove tailwind ring on buttons */
 button:focus-visible { outline: 2px solid var(--input-focus); outline-offset: 2px; }
 
+/* ── Shimmer Animation for Skeletons ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, 
+    var(--border) 25%, 
+    color-mix(in srgb, var(--border) 80%, var(--text-primary)) 50%, 
+    var(--border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
 /* ═══════════════════════════════════════════════
    SCROLL REVEAL  —  pop-in on enter, reset on exit
    Works bidirectionally: scroll down AND scroll up

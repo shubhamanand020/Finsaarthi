@@ -59,8 +59,8 @@ export const HomePage = () => {
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                 {user ? (
-                  <Link to="/dashboard" className="apple-btn apple-btn-primary">
-                    Go to Dashboard <ArrowRight size={16} />
+                  <Link to={user.role === 'admin' ? '/admin' : '/dashboard'} className="apple-btn apple-btn-primary">
+                    {user.role === 'admin' ? 'Admin Panel' : 'Go to Dashboard'} <ArrowRight size={16} />
                   </Link>
                 ) : (
                   <>

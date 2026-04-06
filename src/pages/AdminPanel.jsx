@@ -1,446 +1,490 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import apiClient from '../api/client';
 import { ScholarshipCard } from '../component/ScholarshipCard';
-import { Plus, CreditCard as Edit, Trash2, Users, BookOpen, CheckCircle, Clock, Search, Filter, FileText } from 'lucide-react';
+import { Plus, CreditCard as Edit, Trash2, BookOpen, CheckCircle, Clock, Search, FileText, Loader, X, Link as LinkIcon } from 'lucide-react';
+
+const parseDate = (d) => {
+  if (!d) return '';
+  try {
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+  } catch { return ''; }
+};
+
+/* ── Apple-style Animated Modal ── */
+const Modal = ({ children, onClose }) => createPortal(
+  <motion.div
+    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    transition={{ duration: 0.2, ease: 'easeInOut' }} onClick={onClose}
+    style={{
+      position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(5px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+    }}
+  >
+    <motion.div
+      initial={{ scale: 0.96, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 15 }}
+      transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }} onClick={e => e.stopPropagation()}
+      style={{
+        background: 'var(--bg-elevated)', border: '1px solid var(--borderStrong)', boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+        borderRadius: 24, maxWidth: 800, width: '100%', maxHeight: '88vh', overflowY: 'auto', position: 'relative', padding: '2.5rem 2rem'
+      }}
+    >
+      <button onClick={onClose} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'var(--bg-surface)', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0.4rem', borderRadius: '50%', display: 'flex', alignItems: 'center' }}>
+        <X size={18} />
+      </button>
+      {children}
+    </motion.div>
+  </motion.div>,
+  document.body
+);
+
+const formInput = { width: '100%', padding: '0.65rem 0.9rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: 10, color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' };
+const FormField = ({ label, children }) => (
+  <div style={{ marginBottom: '1rem' }}>
+    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.02em' }}>{label}</label>
+    {children}
+  </div>
+);
 
 export const AdminPanel = () => {
   const { user } = useAuth();
-  const {
-    data,
-    addScholarship,
-    updateScholarship,
-    deleteScholarship,
-    updateApplicationStatus,
-    getScholarshipById,
-    getUserById
-  } = useLocalStorage();
+
+  const [scholarships, setScholarships] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalApplications: 0,
+    approvedApplications: 0,
+    rejectedApplications: 0,
+    pendingApplications: 0,
+    approvalRate: 0,
+  });
+  const [applicationTrends, setApplicationTrends] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState('scholarships');
   const [showScholarshipModal, setShowScholarshipModal] = useState(false);
   const [editingScholarship, setEditingScholarship] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updatingApplicationIds, setUpdatingApplicationIds] = useState([]);
 
   const [scholarshipForm, setScholarshipForm] = useState({
-    title: '',
-    amount: 0,
-    eligibility: [''],
-    deadline: '',
-    description: '',
-    requirements: [''],
-    provider: '',
-    category: 'Merit-based',
-    isActive: true,
+    title: '', amount: 0, eligibility: [''], deadline: '',
+    description: '', requiredDocuments: [''], provider: '',
+    category: 'Merit-based', isActive: true,
   });
 
-  // Filter applications
-  const filteredApplications = data.applications.filter(app => {
-    const scholarship = getScholarshipById(app.scholarshipId);
-    const student = getUserById(app.studentId);
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      try {
+        setIsLoading(true);
+        const [schRes, appRes, usrRes, statsRes, trendsRes] = await Promise.all([
+          apiClient.get('/scholarships').catch(() => ({ data: [] })),
+          apiClient.get('/applications').catch(() => ({ data: [] })), 
+          apiClient.get('/users').catch(() => ({ data: [] })),
+          apiClient.get('/admin/dashboard/stats').catch(() => ({ data: null })),
+          apiClient.get('/admin/dashboard/trends').catch(() => ({ data: [] }))        
+        ]);
+        
+        const safeScholarships = Array.isArray(schRes.data) ? schRes.data : (schRes.data?.content || schRes.data?.data || []);
+        const safeApplications = Array.isArray(appRes.data) ? appRes.data : (appRes.data?.content || appRes.data?.data || []);
+        const safeUsers = Array.isArray(usrRes.data) ? usrRes.data : (usrRes.data?.content || usrRes.data?.data || []);
+        const safeStats = statsRes.data || null;
+        const safeTrends = Array.isArray(trendsRes.data) ? trendsRes.data : [];
 
-    const matchesSearch =
-      searchTerm === '' ||
-      scholarship?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student?.name.toLowerCase().includes(searchTerm.toLowerCase());
+        // Normalize backend field names: eligibilityCriteria -> eligibility
+        const normalized = safeScholarships.map(s => ({
+          ...s,
+          eligibility: s.eligibilityCriteria || s.eligibility || [],
+        }));
+        setScholarships(normalized);
+        setApplications(
+          safeApplications.map((application) => ({
+            ...application,
+            documents: normalizeDocuments(application.documents),
+          }))
+        );
+        setUsers(safeUsers);
+        setDashboardStats(safeStats || {
+          totalApplications: safeApplications.length,
+          approvedApplications: safeApplications.filter(app => (app.status || '').toUpperCase() === 'APPROVED').length,
+          rejectedApplications: safeApplications.filter(app => (app.status || '').toUpperCase() === 'REJECTED').length,
+          pendingApplications: safeApplications.filter(app => ['PENDING', 'UNDER_REVIEW'].includes((app.status || '').toUpperCase())).length,
+          approvalRate: safeApplications.length === 0 ? 0 : Number(((safeApplications.filter(app => (app.status || '').toUpperCase() === 'APPROVED').length * 100) / safeApplications.length).toFixed(1)),
+        });
+        setApplicationTrends(safeTrends);
+      } catch (error) {
+        console.error("Failed to load admin data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    const matchesStatus = statusFilter === '' || app.status === statusFilter;
+    if (user && user.role === 'admin') fetchAdminData();
+  }, [user]);
 
-    return matchesSearch && matchesStatus;
-  });
+  const normalizeDocuments = (documents = []) => {
+    if (!Array.isArray(documents)) return [];
+
+    const seen = new Set();
+    return documents.filter((document) => {
+      const name = (document?.name || '').trim();
+      const link = (document?.link || '').trim();
+      if (!name && !link) return false;
+
+      const key = `${name.toLowerCase()}::${link}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  const getScholarshipById = (id) => scholarships.find(s => s.id === id);
+  const getUserById = (id) => users.find(u => u.id === id);
+
+  const filteredApplications = useMemo(() => {
+    return applications.filter(app => {
+      const scholarship = getScholarshipById(app.scholarshipId);
+      const student = getUserById(app.studentId);
+      const matchesSearch = searchTerm === '' || scholarship?.title?.toLowerCase().includes(searchTerm.toLowerCase()) || student?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === '' || (app.status || '').toUpperCase() === statusFilter.toUpperCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [applications, scholarships, users, searchTerm, statusFilter]);
 
   const resetForm = () => {
     setScholarshipForm({
-      title: '',
-      amount: 0,
-      eligibility: [''],
-      deadline: '',
-      description: '',
-      requirements: [''],
-      provider: '',
-      category: 'Merit-based',
-      isActive: true,
+      title: '', amount: 0, eligibility: [''], deadline: '',
+      description: '', requiredDocuments: [''], provider: '',
+      category: 'Merit-based', isActive: true,
     });
     setEditingScholarship(null);
   };
 
-  const handleScholarshipSubmit = (e) => {
+  const handleScholarshipSubmit = async (e) => {
     e.preventDefault();
-
+    setIsSubmitting(true);
+    
+    // Map frontend field names to backend field names
     const scholarshipData = {
-      ...scholarshipForm,
-      eligibility: scholarshipForm.eligibility.filter(e => e.trim() !== ''),
-      requirements: scholarshipForm.requirements.filter(r => r.trim() !== ''),
+      title: scholarshipForm.title,
+      amount: Number(scholarshipForm.amount),
+      description: scholarshipForm.description,
+      provider: scholarshipForm.provider,
+      category: scholarshipForm.category,
+      deadline: scholarshipForm.deadline,
+      isActive: scholarshipForm.isActive,
+      eligibilityCriteria: (scholarshipForm.eligibility || []).filter(e => e.trim() !== ''),
+      requiredDocuments: (scholarshipForm.requiredDocuments || []).filter(r => r.trim() !== ''),
     };
 
-    if (editingScholarship) {
-      updateScholarship(editingScholarship, scholarshipData);
-    } else {
-      addScholarship(scholarshipData);
+    try {
+      if (editingScholarship) {
+        const res = await apiClient.put(`/scholarships/${editingScholarship}`, scholarshipData);
+        const updated = { ...res.data, eligibility: res.data.eligibilityCriteria || res.data.eligibility || [] };
+        setScholarships(prev => prev.map(s => s.id === editingScholarship ? updated : s));
+      } else {
+        const res = await apiClient.post('/scholarships', scholarshipData);
+        const created = { ...res.data, eligibility: res.data.eligibilityCriteria || res.data.eligibility || [] };
+        setScholarships(prev => [...prev, created]);
+      }
+      setShowScholarshipModal(false);
+      resetForm();
+    } catch (error) {
+      console.error("Failed to save scholarship:", error);
+      alert("Error saving scholarship.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setShowScholarshipModal(false);
-    resetForm();
   };
 
   const handleEditScholarship = (scholarship) => {
-    setScholarshipForm(scholarship);
+    setScholarshipForm({
+      title: scholarship.title || '',
+      amount: scholarship.amount || 0,
+      description: scholarship.description || '',
+      provider: scholarship.provider || '',
+      category: scholarship.category || 'Merit-based',
+      deadline: parseDate(scholarship.deadline),
+      isActive: scholarship.isActive !== false,
+      eligibility: scholarship.eligibility || scholarship.eligibilityCriteria || [''],
+      requiredDocuments: (scholarship.requiredDocuments || scholarship.requirements || []).map((document) =>
+        typeof document === 'string' ? document : document.name
+      ).filter(Boolean).length > 0
+        ? (scholarship.requiredDocuments || scholarship.requirements || []).map((document) =>
+            typeof document === 'string' ? document : document.name
+          ).filter(Boolean)
+        : [''],
+    });
     setEditingScholarship(scholarship.id);
     setShowScholarshipModal(true);
   };
 
-  const handleDeleteScholarship = (id) => {
-    if (window.confirm('Are you sure you want to delete this scholarship? This will also delete all related applications.')) {
-      deleteScholarship(id);
+  const handleDeleteScholarship = async (id) => {
+    if (window.confirm('Are you sure you want to delete this scholarship?')) {
+      try {
+        await apiClient.delete(`/scholarships/${id}`);
+        setScholarships(prev => prev.filter(s => s.id !== id));
+      } catch (error) {
+        console.error("Failed to delete scholarship:", error);
+        alert("Cannot delete scholarship. It may have existing applications.");
+      }
     }
   };
 
-  const handleUpdateApplicationStatus = (applicationId, status, notes) => {
-    updateApplicationStatus(applicationId, status, notes);
+  const handleUpdateApplicationStatus = async (applicationId, status, notes) => {
+    if (updatingApplicationIds.includes(applicationId)) {
+      return;
+    }
+
+    try {
+      setUpdatingApplicationIds((prev) => [...prev, applicationId]);
+      const res = await apiClient.patch(`/applications/${applicationId}/status`, { status, adminNotes: notes || null });
+      const updatedApplication = {
+        ...res.data,
+        documents: normalizeDocuments(res.data?.documents),
+      };
+
+      setApplications(prev => prev.map(app => app.id === applicationId ? updatedApplication : app));
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert(error?.response?.data?.message || "Failed to update status.");
+    } finally {
+      setUpdatingApplicationIds((prev) => prev.filter((id) => id !== applicationId));
+    }
   };
 
-  const addEligibilityField = () => {
-    setScholarshipForm({
-      ...scholarshipForm,
-      eligibility: [...scholarshipForm.eligibility, ''],
-    });
-  };
-
-  const removeEligibilityField = (index) => {
-    setScholarshipForm({
-      ...scholarshipForm,
-      eligibility: scholarshipForm.eligibility.filter((_, i) => i !== index),
-    });
-  };
-
-  const updateEligibilityField = (index, value) => {
-    const updated = [...scholarshipForm.eligibility];
+  // Field arrays
+  const addField = (field) => setScholarshipForm(p => ({ ...p, [field]: [...p[field], ''] }));
+  const removeField = (field, index) => setScholarshipForm(p => ({ ...p, [field]: p[field].filter((_, i) => i !== index) }));
+  const updateField = (field, index, value) => {
+    const updated = [...scholarshipForm[field]];
     updated[index] = value;
-    setScholarshipForm({ ...scholarshipForm, eligibility: updated });
-  };
-
-  const addRequirementField = () => {
-    setScholarshipForm({
-      ...scholarshipForm,
-      requirements: [...scholarshipForm.requirements, ''],
-    });
-  };
-
-  const removeRequirementField = (index) => {
-    setScholarshipForm({
-      ...scholarshipForm,
-      requirements: scholarshipForm.requirements.filter((_, i) => i !== index),
-    });
-  };
-
-  const updateRequirementField = (index, value) => {
-    const updated = [...scholarshipForm.requirements];
-    updated[index] = value;
-    setScholarshipForm({ ...scholarshipForm, requirements: updated });
+    setScholarshipForm(p => ({ ...p, [field]: updated }));
   };
 
   if (!user || user.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
-          <p className="text-gray-600">You need admin privileges to access this panel.</p>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Access Denied. Admin privileges required.</p>
       </div>
     );
   }
 
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Loader className="animate-spin text-orange-600" size={48} />
+      </div>
+    );
+  }
+
+  const dashStats = [
+    { icon: <BookOpen size={22} />, label: 'Total Scholarships', value: scholarships.length },
+    { icon: <FileText size={22} />, label: 'Total Applications', value: dashboardStats.totalApplications },
+    { icon: <Clock size={22} />, label: 'Pending Review', value: dashboardStats.pendingApplications },
+    { icon: <CheckCircle size={22}/>, label: 'Approved', value: dashboardStats.approvedApplications },
+    { icon: <CheckCircle size={22}/>, label: 'Approval Rate', value: `${dashboardStats.approvalRate}%` },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
-          <p className="text-gray-600">Manage scholarships and review applications</p>
+    <div className="page-enter" style={{ minHeight: '100vh', background: 'var(--bg-base)', padding: '3rem 1.5rem', transition: 'background 0.35s ease' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: 0, marginBottom: '0.35rem' }}>
+            Admin <span className="text-gradient">Panel</span>
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.95rem' }}>
+            Manage scholarships and review applications.
+          </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {/* Total Scholarships */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center">
-              <BookOpen className="w-8 h-8 text-orange-600 mr-3" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          {dashStats.map((s, i) => (
+            <div key={i} className="glass-card" style={{ display: 'flex', alignItems: 'center', padding: '1.25rem', gap: '1rem' }}>
+              <div className="icon-pill" style={{ flexShrink: 0, marginBottom: 0 }}>{s.icon}</div>
               <div>
-                <p className="text-2xl font-bold">{data.scholarships.length}</p>
-                <p className="text-gray-600">Total Scholarships</p>
+                <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{s.value}</p>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>{s.label}</p>
               </div>
             </div>
-          </div>
+          ))}
+        </div>
 
-          {/* Total Applications */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center">
-              <FileText className="w-8 h-8 text-blue-600 mr-3" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.7fr)', gap: '1rem', marginBottom: '2rem' }}>
+          <div className="glass-card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
-                <p className="text-2xl font-bold">{data.applications.length}</p>
-                <p className="text-gray-600">Total Applications</p>
+                <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>Application Trends</h2>
+                <p style={{ margin: '0.3rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Daily application counts from the backend trend feed.</p>
               </div>
             </div>
+            {applicationTrends.length > 0 ? (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {applicationTrends.map((trend) => {
+                  const maxCount = Math.max(...applicationTrends.map(item => item.count), 1);
+                  const width = `${Math.max((trend.count / maxCount) * 100, 8)}%`;
+                  return (
+                    <div key={trend.date} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 50px', gap: '0.75rem', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600 }}>{trend.date}</span>
+                      <div style={{ height: 10, background: 'var(--bg-surface)', borderRadius: 999, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width, background: 'linear-gradient(90deg, #EA580C 0%, #FF9B66 100%)', borderRadius: 999 }} />
+                      </div>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 700, textAlign: 'right' }}>{trend.count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No application trend data available yet.</p>
+            )}
           </div>
 
-          {/* Pending */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center">
-              <Clock className="w-8 h-8 text-yellow-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {data.applications.filter(app => app.status === 'pending').length}
-                </p>
-                <p className="text-gray-600">Pending Review</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Approved */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center">
-              <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {data.applications.filter(app => app.status === 'approved').length}
-                </p>
-                <p className="text-gray-600">Approved</p>
-              </div>
+          <div className="glass-card" style={{ padding: '1.25rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>Status Breakdown</h2>
+            <div style={{ display: 'grid', gap: '0.85rem', marginTop: '1rem' }}>
+              {[ 
+                ['Approved', dashboardStats.approvedApplications, 'rgba(52,199,89,0.12)', '#248a3d'],
+                ['Rejected', dashboardStats.rejectedApplications, 'rgba(255,59,48,0.12)', '#ff3b30'],
+                ['Pending', dashboardStats.pendingApplications, 'rgba(255,159,10,0.12)', '#b8860b'],
+              ].map(([label, value, bg, color]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.9rem 1rem', borderRadius: 14, background: bg }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{label}</span>
+                  <span style={{ color, fontSize: '1.1rem', fontWeight: 800 }}>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-lg mb-8 border border-gray-100">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
+        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 1.5rem' }}>
+            {[{ id: 'scholarships', label: 'Manage Scholarships' }, { id: 'applications', label: `Review Applications (${applications.filter(a => (a.status || '').toUpperCase() === 'PENDING').length})` }].map(t => (
               <button
-                onClick={() => setActiveTab('scholarships')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'scholarships'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500'
-                }`}
+                key={t.id} onClick={() => setActiveTab(t.id)}
+                style={{ padding: '1rem 0.25rem', marginRight: '2rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600, color: activeTab === t.id ? '#EA580C' : 'var(--text-secondary)', borderBottom: `2px solid ${activeTab === t.id ? '#EA580C' : 'transparent'}`, transition: 'all 0.2s' }}
               >
-                Manage Scholarships
+                {t.label}
               </button>
-
-              <button
-                onClick={() => setActiveTab('applications')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'applications'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500'
-                }`}
-              >
-                Review Applications ({data.applications.filter(app => app.status === 'pending').length} pending)
-              </button>
-            </nav>
+            ))}
           </div>
 
-          <div className="p-6">
-            {/* TAB: SCHOLARSHIPS */}
+          <div style={{ padding: '1.5rem' }}>
             {activeTab === 'scholarships' ? (
-
               <div>
-                {/* Add Scholarship Button */}
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold">Scholarships</h2>
-                  <button
-                    onClick={() => setShowScholarshipModal(true)}
-                    className="bg-orange-600 text-white px-4 py-2 rounded-lg"
-                  >
-                    <Plus className="w-4 h-4 inline mr-2" />
-                    Add New Scholarship
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Active Scholarships</h2>
+                  <button onClick={() => setShowScholarshipModal(true)} className="apple-btn apple-btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                    <Plus size={16} style={{ marginRight: '0.3rem' }} /> Add New
                   </button>
                 </div>
 
-                {/* Scholarships Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {data.scholarships.map(scholarship => (
-                    <div key={scholarship.id} className="relative">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {scholarships.map(scholarship => (
+                    <div key={scholarship.id} style={{ position: 'relative' }}>
                       <ScholarshipCard scholarship={scholarship} showActions={false} />
-
-                      <div className="absolute top-2 right-2 flex space-x-2">
-                        <button
-                          onClick={() => handleEditScholarship(scholarship)}
-                          className="p-2 bg-blue-500 text-white rounded-lg"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteScholarship(scholarship.id)}
-                          className="p-2 bg-red-500 text-white rounded-lg"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.4rem' }}>
+                        <button onClick={() => handleEditScholarship(scholarship)} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}><Edit size={14} /></button>
+                        <button onClick={() => handleDeleteScholarship(scholarship.id)} style={{ background: '#fee2e2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}><Trash2 size={14} /></button>
                       </div>
                     </div>
                   ))}
                 </div>
-
-                {data.scholarships.length === 0 && (
-                  <div className="text-center py-12">
-                    <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium">No scholarships yet</h3>
-                    <button
-                      onClick={() => setShowScholarshipModal(true)}
-                      className="mt-4 bg-orange-600 text-white px-6 py-2 rounded-lg"
-                    >
-                      Add New Scholarship
-                    </button>
-                  </div>
-                )}
               </div>
-
             ) : (
-              /* TAB: APPLICATIONS */
               <div>
-
-                {/* Search + Filter */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search applications..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 border rounded-lg"
-                    />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+                  <div style={{ flex: '1 1 220px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Search size={15} style={{ position: 'absolute', left: 12, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+                    <input type="text" placeholder="Search applications..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ ...formInput, paddingLeft: '2.4rem' }} className="apple-input" />
                   </div>
-
-                  {/* Status Filter */}
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-4 py-2 border rounded-lg"
-                  >
+                  <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ ...formInput, width: 'auto', cursor: 'pointer' }} className="apple-input">
                     <option value="">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="under-review">Under Review</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="UNDER_REVIEW">Under Review</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="REJECTED">Rejected</option>
                   </select>
                 </div>
 
-                {/* Applications List */}
                 {filteredApplications.length > 0 ? (
-                  <div className="space-y-6">
-                    {filteredApplications.map(application => {
-                      const scholarship = getScholarshipById(application.scholarshipId);
-                      const student = getUserById(application.studentId);
-
-                      if (!scholarship || !student) return null;
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {filteredApplications.map(app => {
+                      const scholarship = getScholarshipById(app.scholarshipId) || { title: 'Unknown' };
+                      const student = getUserById(app.studentId) || { name: 'Unknown User', email: '' };
+                      const submittedDocuments = normalizeDocuments(app.documents);
+                      const isUpdatingStatus = updatingApplicationIds.includes(app.id);
+                      const sd = app.studentDetails || {};
 
                       return (
-                        <div
-                          key={application.id}
-                          className="bg-gray-50 border rounded-lg p-6"
-                        >
-                          <div className="flex justify-between items-start mb-4">
-
-                            {/* Scholarship + Student */}
+                        <div key={app.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.25rem 1.5rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                             <div>
-                              <h3 className="text-lg font-semibold mb-1">{scholarship.title}</h3>
-
-                              <p className="text-sm text-gray-600">
-                                Applied by: {student.name} ({student.email})
-                              </p>
-
-                              <p className="text-sm text-gray-600">
-                                Applied on: {new Date(application.submittedAt).toLocaleDateString('en-IN')}
-                              </p>
+                              <h3 style={{ margin: '0 0 0.2rem', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{scholarship.title}</h3>
+                              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{student.name} ({student.email})</p>
                             </div>
-
-                            {/* Status Badge */}
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              application.status === 'approved'
-                                ? 'bg-green-100 text-green-800'
-                                : application.status === 'rejected'
-                                ? 'bg-red-100 text-red-800'
-                                : application.status === 'under-review'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {application.status.replace('-', ' ').toUpperCase()}
+                            <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600, background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+                              {(app.status || 'pending').toUpperCase()}
                             </span>
                           </div>
 
-                          {/* Student Details */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
-                            <div>
-                              <span className="font-medium">Phone:</span>
-                              <span className="ml-2">{application.studentDetails.phone}</span>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                            <div><strong style={{color: 'var(--text-primary)'}}>Phone:</strong> {app.applicantPhone || 'N/A'}</div>
+                            <div><strong style={{color: 'var(--text-primary)'}}>Location:</strong> {app.location || 'N/A'}</div>
+                            <div><strong style={{color: 'var(--text-primary)'}}>Class:</strong> {app.studentClass || 'N/A'}</div>
+                            <div><strong style={{color: 'var(--text-primary)'}}>GPA:</strong> {app.gpa || 'N/A'}</div>
+                            <div><strong style={{color: 'var(--text-primary)'}}>10th Marks:</strong> {app.marks10th ? `${app.marks10th}%` : 'N/A'}</div>
+                            <div><strong style={{color: 'var(--text-primary)'}}>12th Marks:</strong> {app.marks12th ? `${app.marks12th}%` : 'N/A'}</div>
+                            
+                            <div style={{ gridColumn: '1 / -1', background: 'var(--bg-surface)', padding: '0.75rem', borderRadius: 8, marginTop: '0.5rem' }}>
+                              <p style={{ margin: '0 0 0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>Family Details:</p>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
+                                <div><strong style={{color: 'var(--text-primary)'}}>Parent:</strong> {app.parentName || 'N/A'}</div>
+                                <div><strong style={{color: 'var(--text-primary)'}}>Occupation:</strong> {app.parentOccupation || 'N/A'}</div>
+                                <div><strong style={{color: 'var(--text-primary)'}}>Mobile:</strong> {app.parentMobile || 'N/A'}</div>
+                              </div>
                             </div>
 
-                            <div>
-                              <span className="font-medium">GPA:</span>
-                              <span className="ml-2">{application.studentDetails.gpa}%</span>
-                            </div>
-
-                            <div className="md:col-span-2">
-                              <span className="font-medium">Education:</span>
-                              <span className="ml-2">{application.studentDetails.education}</span>
-                            </div>
-
-                            <div className="md:col-span-2">
-                              <span className="font-medium">Address:</span>
-                              <span className="ml-2">{application.studentDetails.address}</span>
+                            <div style={{ gridColumn: '1 / -1' }}><strong style={{color: 'var(--text-primary)'}}>Education:</strong> {app.applicantEducation || 'N/A'}</div>
+                            <div style={{ gridColumn: '1 / -1' }}><strong style={{color: 'var(--text-primary)'}}>Address:</strong> {app.applicantAddress || 'N/A'}</div>
+                            
+                            <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                              <strong style={{color: 'var(--text-primary)', display: 'block', marginBottom: '0.4rem'}}>Submitted Documents:</strong>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {submittedDocuments.length > 0 ? submittedDocuments.map((document) => (
+                                  <div key={`${app.id}-${document.name}-${document.link}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{document.name}:</span>
+                                    <a
+                                      href={document.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#EA580C', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                                    >
+                                      <LinkIcon size={12} />
+                                      {document.link.length > 60 ? `${document.link.substring(0, 60)}...` : document.link}
+                                    </a>
+                                  </div>
+                                )) : 'No documents provided'}
+                              </div>
                             </div>
                           </div>
 
-                          {/* Admin Actions */}
-                          <div className="flex flex-wrap gap-2 mt-4">
-
-                            {/* Under Review */}
-                            <button
-                              onClick={() => handleUpdateApplicationStatus(application.id, 'under-review')}
-                              className="px-3 py-1 bg-yellow-500 text-white rounded"
-                            >
-                              Mark Under Review
-                            </button>
-
-                            {/* Approve */}
-                            <button
-                              onClick={() => handleUpdateApplicationStatus(application.id, 'approved')}
-                              className="px-3 py-1 bg-green-500 text-white rounded"
-                            >
-                              Approve
-                            </button>
-
-                            {/* Reject */}
-                            <button
-                              onClick={() => {
-                                const notes = window.prompt('Rejection Reason (optional):');
-                                handleUpdateApplicationStatus(application.id, 'rejected', notes || undefined);
-                              }}
-                              className="px-3 py-1 bg-red-500 text-white rounded"
-                            >
-                              Reject
-                            </button>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button disabled={isUpdatingStatus} onClick={() => handleUpdateApplicationStatus(app.id, 'UNDER_REVIEW')} className="apple-btn" style={{ background: 'rgba(255,159,10,0.1)', color: '#b8860b', padding: '0.4rem 0.8rem', fontSize: '0.8rem', opacity: isUpdatingStatus ? 0.6 : 1, cursor: isUpdatingStatus ? 'not-allowed' : 'pointer' }}>{isUpdatingStatus ? 'Updating...' : 'Under Review'}</button>
+                            <button disabled={isUpdatingStatus} onClick={() => handleUpdateApplicationStatus(app.id, 'APPROVED')} className="apple-btn" style={{ background: 'rgba(52,199,89,0.1)', color: '#248a3d', padding: '0.4rem 0.8rem', fontSize: '0.8rem', opacity: isUpdatingStatus ? 0.6 : 1, cursor: isUpdatingStatus ? 'not-allowed' : 'pointer' }}>{isUpdatingStatus ? 'Updating...' : 'Approve'}</button>
+                            <button disabled={isUpdatingStatus} onClick={() => { const n = window.prompt('Rejection Reason:'); if (n !== null) handleUpdateApplicationStatus(app.id, 'REJECTED', n); }} className="apple-btn" style={{ background: 'rgba(255,59,48,0.1)', color: '#ff3b30', padding: '0.4rem 0.8rem', fontSize: '0.8rem', opacity: isUpdatingStatus ? 0.6 : 1, cursor: isUpdatingStatus ? 'not-allowed' : 'pointer' }}>{isUpdatingStatus ? 'Updating...' : 'Reject'}</button>
                           </div>
-
-                          {/* Admin Notes */}
-                          {application.adminNotes && (
-                            <div className="mt-4 p-3 bg-white border rounded">
-                              <h4 className="font-medium mb-1">Admin Notes:</h4>
-                              <p className="text-sm text-gray-600">{application.adminNotes}</p>
-                            </div>
-                          )}
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium">No applications found</h3>
-                  </div>
+                  <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem 0' }}>No applications match your search.</p>
                 )}
               </div>
             )}
@@ -448,233 +492,80 @@ export const AdminPanel = () => {
         </div>
       </div>
 
-      {/* Scholarship Modal */}
-      {showScholarshipModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold mb-6">
-                {editingScholarship ? 'Edit Scholarship' : 'Add New Scholarship'}
-              </h2>
-
-              <form onSubmit={handleScholarshipSubmit} className="space-y-6">
-
-                {/* Grid Inputs */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                  {/* Title */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={scholarshipForm.title}
-                      onChange={(e) =>
-                        setScholarshipForm({ ...scholarshipForm, title: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded"
-                    />
-                  </div>
-
-                  {/* Amount */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Amount (₹)
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={scholarshipForm.amount}
-                      onChange={(e) =>
-                        setScholarshipForm({ ...scholarshipForm, amount: Number(e.target.value) })
-                      }
-                      className="w-full px-3 py-2 border rounded"
-                    />
-                  </div>
-
-                  {/* Provider */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Provider
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={scholarshipForm.provider}
-                      onChange={(e) =>
-                        setScholarshipForm({ ...scholarshipForm, provider: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded"
-                    />
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Category
-                    </label>
-                    <select
-                      value={scholarshipForm.category}
-                      onChange={(e) =>
-                        setScholarshipForm({ ...scholarshipForm, category: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded"
-                    >
-                      <option value="Merit-based">Merit-based</option>
-                      <option value="Need-based">Need-based</option>
-                      <option value="Field-specific">Field-specific</option>
-                    </select>
-                  </div>
-
-                  {/* Deadline */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Deadline
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={scholarshipForm.deadline}
-                      onChange={(e) =>
-                        setScholarshipForm({ ...scholarshipForm, deadline: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded"
-                    />
-                  </div>
-
-                  {/* Active Checkbox */}
-                  <div className="flex items-center gap-2 mt-6">
-                    <input
-                      type="checkbox"
-                      checked={scholarshipForm.isActive}
-                      onChange={(e) =>
-                        setScholarshipForm({ ...scholarshipForm, isActive: e.target.checked })
-                      }
-                    />
-                    <span className="text-sm">Active</span>
-                  </div>
+      {/* ── Add/Edit Scholarship Modal ── */}
+      <AnimatePresence>
+        {showScholarshipModal && (
+          <Modal onClose={() => { setShowScholarshipModal(false); resetForm(); }}>
+            <h2 style={{ margin: '0 0 1.5rem', fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {editingScholarship ? 'Edit Scholarship' : 'Add New Scholarship'}
+            </h2>
+            <form onSubmit={handleScholarshipSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                <FormField label="TITLE">
+                  <input type="text" required value={scholarshipForm.title} onChange={(e) => setScholarshipForm({ ...scholarshipForm, title: e.target.value })} style={formInput} />
+                </FormField>
+                <FormField label="AMOUNT (₹)">
+                  <input type="number" required min="1" value={scholarshipForm.amount} onChange={(e) => setScholarshipForm({ ...scholarshipForm, amount: Number(e.target.value) })} style={formInput} />
+                </FormField>
+                <FormField label="PROVIDER">
+                  <input type="text" required value={scholarshipForm.provider} onChange={(e) => setScholarshipForm({ ...scholarshipForm, provider: e.target.value })} style={formInput} />
+                </FormField>
+                <FormField label="CATEGORY">
+                  <select value={scholarshipForm.category} onChange={(e) => setScholarshipForm({ ...scholarshipForm, category: e.target.value })} style={{ ...formInput, cursor: 'pointer' }}>
+                    <option value="Merit-based">Merit-based</option>
+                    <option value="Need-based">Need-based</option>
+                    <option value="Field-specific">Field-specific</option>
+                  </select>
+                </FormField>
+                <FormField label="DEADLINE">
+                  <input type="date" required value={scholarshipForm.deadline} onChange={(e) => setScholarshipForm({ ...scholarshipForm, deadline: e.target.value })} style={formInput} />
+                </FormField>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                  <input type="checkbox" id="isActive" checked={scholarshipForm.isActive} onChange={(e) => setScholarshipForm({ ...scholarshipForm, isActive: e.target.checked })} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+                  <label htmlFor="isActive" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}>Active Scholarship</label>
                 </div>
+              </div>
 
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={scholarshipForm.description}
-                    onChange={(e) =>
-                      setScholarshipForm({ ...scholarshipForm, description: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded"
-                  />
-                </div>
+              <FormField label="DESCRIPTION">
+                <textarea required rows={3} value={scholarshipForm.description} onChange={(e) => setScholarshipForm({ ...scholarshipForm, description: e.target.value })} style={{ ...formInput, resize: 'vertical' }} />
+              </FormField>
 
-                {/* Eligibility */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Eligibility Criteria
-                  </label>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ELIGIBILITY CRITERIA</label>
+                {scholarshipForm.eligibility.map((crit, index) => (
+                  <div key={index} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <input type="text" value={crit} onChange={(e) => updateField('eligibility', index, e.target.value)} style={formInput} />
+                    {scholarshipForm.eligibility.length > 1 && (
+                      <button type="button" onClick={() => removeField('eligibility', index)} style={{ background: 'none', border: 'none', color: '#ff3b30', cursor: 'pointer', padding: '0 0.5rem' }}><Trash2 size={18} /></button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" onClick={() => addField('eligibility')} style={{ background: 'none', border: 'none', color: '#EA580C', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.5rem' }}><Plus size={14} /> Add Criterion</button>
+              </div>
 
-                  {scholarshipForm.eligibility.map((criteria, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={criteria}
-                        onChange={(e) => updateEligibilityField(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border rounded"
-                      />
+              <div style={{ marginBottom: '2rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>REQUIRED DOCUMENTS</label>
+                {scholarshipForm.requiredDocuments.map((req, index) => (
+                  <div key={index} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <input type="text" value={req} onChange={(e) => updateField('requiredDocuments', index, e.target.value)} style={formInput} />
+                    {scholarshipForm.requiredDocuments.length > 1 && (
+                      <button type="button" onClick={() => removeField('requiredDocuments', index)} style={{ background: 'none', border: 'none', color: '#ff3b30', cursor: 'pointer', padding: '0 0.5rem' }}><Trash2 size={18} /></button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" onClick={() => addField('requiredDocuments')} style={{ background: 'none', border: 'none', color: '#EA580C', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.5rem' }}><Plus size={14} /> Add Document</button>
+              </div>
 
-                      {scholarshipForm.eligibility.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeEligibilityField(index)}
-                          className="px-3 py-2 text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={addEligibilityField}
-                    className="text-orange-600 text-sm"
-                  >
-                    <Plus className="w-4 h-4 inline mr-1" />
-                    Add Criterion
-                  </button>
-                </div>
-
-                {/* Requirements */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Required Documents
-                  </label>
-
-                  {scholarshipForm.requirements.map((req, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={req}
-                        onChange={(e) => updateRequirementField(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border rounded"
-                      />
-
-                      {scholarshipForm.requirements.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeRequirementField(index)}
-                          className="px-3 py-2 text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={addRequirementField}
-                    className="text-orange-600 text-sm"
-                  >
-                    <Plus className="w-4 h-4 inline mr-1" />
-                    Add Requirement
-                  </button>
-                </div>
-
-                {/* Form buttons */}
-                <div className="flex justify-end gap-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowScholarshipModal(false);
-                      resetForm();
-                    }}
-                    className="px-6 py-2 border rounded"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-orange-600 text-white rounded"
-                  >
-                    {editingScholarship ? 'Update' : 'Create'} Scholarship
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-        </div>
-      )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button type="button" onClick={() => { setShowScholarshipModal(false); resetForm(); }} disabled={isSubmitting} className="apple-btn apple-btn-secondary">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="apple-btn apple-btn-primary">
+                  {isSubmitting ? <><span className="btn-spinner"/> Saving...</> : (editingScholarship ? 'Update Scholarship' : 'Create Scholarship')}
+                </button>
+              </div>
+            </form>
+          </Modal>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

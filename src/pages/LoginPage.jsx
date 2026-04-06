@@ -1,26 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import apiClient from '../api/client'; // Import the real API client
+import { CaptchaField } from '../component/CaptchaField';
 import {
-  Eye, EyeOff, Mail, Lock, Key,
+  Eye, EyeOff, Mail, Lock,
   AlertCircle, GraduationCap, ShieldCheck,
 } from 'lucide-react';
 
 export const LoginPage = () => {
   const { login } = useAuth();
-  const { getUserByCredentials } = useLocalStorage();
   const navigate = useNavigate();
+  const location = useLocation();
   const { role: urlRole } = useParams();
   const formRef = useRef(null);
 
   const [role, setRole] = useState(urlRole === 'admin' ? 'admin' : 'student');
-  const [formData, setFormData] = useState({ email: '', password: '', adminCode: '' });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
+  const [captcha, setCaptcha] = useState({ captchaId: '', captchaInput: '' });
+  const [captchaRefreshSignal, setCaptchaRefreshSignal] = useState(0);
+
+  useEffect(() => {
+    if (location.state?.verifiedEmail) {
+      setFormData((prev) => ({ ...prev, email: location.state.verifiedEmail }));
+      setError('');
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (urlRole) setRole(urlRole === 'admin' ? 'admin' : 'student');
@@ -34,8 +44,10 @@ export const LoginPage = () => {
   };
 
   const handleRoleSwitch = (r) => {
-    setFormData({ email: '', password: '', adminCode: '' });
+    setFormData({ email: '', password: '' });
     setError('');
+    setCaptcha({ captchaId: '', captchaInput: '' });
+    setCaptchaRefreshSignal((prev) => prev + 1);
     navigate(`/login/${r}`);
   };
 
@@ -44,7 +56,7 @@ export const LoginPage = () => {
     setTimeout(() => setShake(false), 420);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -60,30 +72,64 @@ export const LoginPage = () => {
       triggerShake();
       return;
     }
-    if (isAdmin && formData.adminCode.trim() !== 'ADMIN2026') {
-      setError('Invalid admin access code.');
+    if (!captcha.captchaId || !captcha.captchaInput.trim()) {
+      setError('Please complete the captcha challenge.');
       triggerShake();
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
-      try {
-        const user = getUserByCredentials(formData.email, formData.password);
-        if (user && user.role === role) {
-          login({ id: user.id, email: user.email, name: user.name, role: user.role });
-          navigate(role === 'admin' ? '/admin' : '/dashboard');
-        } else {
-          setError(`Invalid credentials for ${role} access.`);
-          triggerShake();
-        }
-      } catch {
-        setError('Authentication service unavailable.');
+    
+    try {
+      // Make real API call to the backend
+      const response = await apiClient.post('/auth/login', {
+        email: formData.email,
+        password: formData.password,
+        captchaId: captcha.captchaId,
+        captchaInput: captcha.captchaInput.trim(),
+      });
+
+      // Support both wrapped ({ data: { token, user } }) and direct ({ token, user }) payloads
+      const payload = response?.data?.data ?? response?.data;
+      const token = payload?.token;
+      const user = payload?.user;
+
+      if (!token || !user?.role) {
+        setError('Unexpected login response from server. Please try again.');
         triggerShake();
-      } finally {
         setLoading(false);
+        return;
       }
-    }, 1100);
+      
+      // Check if user role matches the portal they are trying to log into
+      const normalizedRole = String(user.role).toLowerCase();
+      if (normalizedRole !== role) {
+        setError(`Invalid credentials for ${role} access.`);
+        triggerShake();
+        setLoading(false);
+        return;
+      }
+
+      // Pass user object and JWT token to context
+      login(user, token);
+      navigate(role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+      
+    } catch (err) {
+      console.error("Login Error:", err);
+      setCaptcha({ captchaId: '', captchaInput: '' });
+      setCaptchaRefreshSignal((prev) => prev + 1);
+      // Handle different error status codes from backend
+      if (err.response && err.response.status === 401) {
+        setError('Incorrect email or password.');
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Authentication service unavailable. Please try again later.');
+      }
+      triggerShake();
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -116,10 +162,7 @@ export const LoginPage = () => {
               color: '#fff',
             }}
           >
-            {isAdmin
-              ? <ShieldCheck size={26} />
-              : <GraduationCap size={26} />
-            }
+            {isAdmin ? <ShieldCheck size={26} /> : <GraduationCap size={26} />}
           </div>
           <h1
             style={{
@@ -235,13 +278,22 @@ export const LoginPage = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
               <Link
-                to="#"
+                to="/forgot-password"
                 style={{ fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none' }}
                 className="text-gradient"
               >
-                Forgot password ?
+                Forgot password?
               </Link>
             </div>
+          </div>
+
+          <div>
+            <CaptchaField
+              value={captcha}
+              onChange={setCaptcha}
+              refreshSignal={captchaRefreshSignal}
+              error={!captcha.captchaInput.trim() && error.toLowerCase().includes('captcha') ? error : ''}
+            />
           </div>
 
           {/* Submit */}
@@ -251,15 +303,11 @@ export const LoginPage = () => {
             className="apple-btn apple-btn-primary"
             style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center', fontSize: '0.95rem' }}
           >
-            {loading
-              ? <><span className="btn-spinner" /> Verifying…</>
-              : 'Sign In'
-            }
+            {loading ? <><span className="btn-spinner" /> Verifying…</> : 'Sign In'}
           </button>
 
         </form>
 
-        {/* Footer */}
         {/* Footer */}
         {!isAdmin && (
           <>
