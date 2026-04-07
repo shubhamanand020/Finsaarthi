@@ -86,9 +86,34 @@ export const AdminPanel = () => {
           ...document,
           name: safeName,
           link: normalizedLink,
+          verified: Boolean(
+            typeof document?.verified === 'boolean'
+              ? document.verified
+              : document?.isVerified
+          ),
+          invalid: Boolean(
+            typeof document?.invalid === 'boolean'
+              ? document.invalid
+              : document?.isInvalid
+          ),
         };
       })
       .filter(Boolean);
+  };
+
+  const buildUpdatedApplication = (currentApp, responseData) => {
+    const updatedApplication = {
+      ...currentApp,
+      ...responseData,
+      documents: normalizeDocuments(responseData?.documents || []),
+      reviewHistory: Array.isArray(responseData?.reviewHistory) ? [...responseData.reviewHistory] : [],
+    };
+
+    console.log('UPDATED APP:', updatedApplication);
+    console.log('DOCUMENTS:', updatedApplication.documents);
+    console.log('AUDIT:', updatedApplication.reviewHistory);
+
+    return updatedApplication;
   };
 
   const [scholarships, setScholarships] = useState([]);
@@ -271,13 +296,17 @@ export const AdminPanel = () => {
     try {
       setUpdatingApplicationIds((prev) => [...prev, applicationId]);
       const res = await apiClient.patch(`/applications/${applicationId}/status`, { status, adminNotes: notes || null });
-      const updatedApplication = {
-        ...res.data,
-        documents: normalizeDocuments(res.data?.documents),
-      };
+      console.log('API RESPONSE:', res.data);
 
-      setApplications(prev => prev.map(app => app.id === applicationId ? updatedApplication : app));
-      setSelectedApplication((prev) => prev && prev.id === applicationId ? updatedApplication : prev);
+      setApplications((prev) => prev.map((app) => {
+        if (app.id !== applicationId) return app;
+        return buildUpdatedApplication(app, res.data);
+      }));
+
+      setSelectedApplication((prev) => {
+        if (!prev || prev.id !== applicationId) return prev;
+        return buildUpdatedApplication(prev, res.data);
+      });
     } catch (error) {
       console.error("Failed to update status:", error);
       alert(error?.response?.data?.message || "Failed to update status.");
@@ -297,14 +326,19 @@ export const AdminPanel = () => {
         verified,
         notes: notes || null,
       });
+      console.log('API RESPONSE:', res.data);
+      console.log('Updated response:', res.data);
 
-      const updatedApplication = {
-        ...res.data,
-        documents: normalizeDocuments(res.data?.documents),
-      };
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === applicationId ? { ...res.data } : app
+        )
+      );
 
-      setApplications((prev) => prev.map((app) => app.id === applicationId ? updatedApplication : app));
-      setSelectedApplication((prev) => prev && prev.id === applicationId ? updatedApplication : prev);
+      setSelectedApplication((prev) => {
+        if (!prev || prev.id !== applicationId) return prev;
+        return { ...res.data };
+      });
     } catch (error) {
       console.error('Failed to update document verification:', error);
       alert(error?.response?.data?.message || 'Failed to update document verification.');
@@ -573,8 +607,27 @@ export const AdminPanel = () => {
                                   <div key={document.id || document.link} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                                       <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{document.name}</span>
-                                      <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, color: document.verified ? '#1f7a33' : '#9a6700', background: document.verified ? 'rgba(52,199,89,0.12)' : 'rgba(255,159,10,0.14)' }}>
-                                        {document.verified ? 'VERIFIED' : 'PENDING VERIFICATION'}
+                                      <span style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 999,
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        color: document.verified
+                                          ? '#1f7a33'
+                                          : document.invalid
+                                            ? '#ff3b30'
+                                            : '#9a6700',
+                                        background: document.verified
+                                          ? 'rgba(52,199,89,0.12)'
+                                          : document.invalid
+                                            ? 'rgba(255,59,48,0.12)'
+                                            : 'rgba(255,159,10,0.14)'
+                                      }}>
+                                        {document.verified
+                                          ? 'Verified'
+                                          : document.invalid
+                                            ? 'Invalid'
+                                            : 'Pending Verification'}
                                       </span>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -582,22 +635,34 @@ export const AdminPanel = () => {
                                         <LinkIcon size={12} /> View
                                       </a>
                                       <button
-                                        disabled={isUpdatingStatus || !document.id}
+                                        disabled={isUpdatingStatus || !document.id || document.verified || document.invalid}
                                         onClick={() => {
                                           const note = window.prompt('Optional document verification note:') || '';
-                                          handleUpdateDocumentVerification(app.id, document.id, !document.verified, note);
+                                          handleUpdateDocumentVerification(app.id, document.id, true, note);
                                         }}
                                         className="apple-btn"
                                         style={{
                                           fontSize: '0.75rem',
                                           padding: '0.35rem 0.7rem',
-                                          background: document.verified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)',
-                                          color: document.verified ? '#ff3b30' : '#1f7a33',
+                                          background: document.verified
+                                            ? 'rgba(52,199,89,0.12)'
+                                            : document.invalid
+                                              ? 'rgba(255,59,48,0.12)'
+                                              : 'rgba(52,199,89,0.1)',
+                                          color: document.verified
+                                            ? '#1f7a33'
+                                            : document.invalid
+                                              ? '#ff3b30'
+                                              : '#1f7a33',
                                           opacity: isUpdatingStatus ? 0.6 : 1,
                                           cursor: isUpdatingStatus ? 'not-allowed' : 'pointer',
                                         }}
                                       >
-                                        {document.verified ? 'Mark Invalid' : 'Mark Verified'}
+                                        {document.verified
+                                          ? 'Verified'
+                                          : document.invalid
+                                            ? 'Invalid'
+                                            : 'Mark Verified'}
                                       </button>
                                     </div>
                                   </div>
