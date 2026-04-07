@@ -13,17 +13,17 @@ export const HomePage = () => {
   const ctaRef      = useScrollReveal(0.15);
 
   const stats = [
-    { icon: <BookOpen size={22} />, label: 'Active Scholarships', value: '4+' },
-    { icon: <Users size={22} />,    label: 'Students Helped',     value: '100+' },
-    { icon: <TrendingUp size={22} />, label: 'Success Rate',      value: '85%' },
-    { icon: <Award size={22} />,    label: 'Amount Disbursed',    value: '₹5L+' },
+    { icon: <BookOpen size={22} />,    label: 'Submit scholarship application details and required documents.', value: 'Application' },
+    { icon: <Shield size={22} />,      label: 'Uploaded documents move through verification checks.',            value: 'Verification' },
+    { icon: <TrendingUp size={22} />,  label: 'Applications are reviewed in a structured status workflow.',     value: 'Review' },
+    { icon: <Award size={22} />,       label: 'Final decision is recorded and visible in application status.',  value: 'Decision' },
   ];
 
   const features = [
-    { icon: <Zap size={20} />,       title: 'Easy Application',   desc: 'Simple, streamlined forms that save your time and effort.' },
-    { icon: <TrendingUp size={20} />, title: 'Real-time Tracking', desc: 'Track your application status and get instant updates.' },
-    { icon: <Star size={20} />,      title: 'Smart Matches',      desc: 'AI-powered recommendations based on your profile.' },
-    { icon: <Shield size={20} />,    title: 'Expert Support',     desc: '24 / 7 guidance from education financing experts.' },
+    { icon: <Shield size={20} />,      title: 'Document Verification',      desc: 'Admins can verify submitted application documents and update verification status.' },
+    { icon: <TrendingUp size={20} />,  title: 'Structured Review Workflow', desc: 'Application statuses progress through Pending, Under Review, Verified, Approved, or Rejected.' },
+    { icon: <Zap size={20} />,         title: 'Application Tracking',       desc: 'Students can view their submitted applications and current status from their dashboard.' },
+    { icon: <Star size={20} />,        title: 'Audit Trail',                desc: 'Review actions and status transitions are captured as audit records for accountability.' },
   ];
 
   return (
@@ -48,13 +48,11 @@ export const HomePage = () => {
               </div>
 
               <h1 className="hero-heading" style={{ marginBottom: '1.25rem' }}>
-                Your Gateway to{' '}
-                <span className="hero-heading-gradient">Educational<br />Excellence</span>
+                <span className="hero-heading-gradient">Apply for Scholarships with a Verified and Transparent Process</span>
               </h1>
 
               <p className="hero-sub" style={{ marginBottom: '2.25rem' }}>
-                Discover, apply, and secure scholarships that match your dreams.
-                FinSaarthi connects deserving students with life-changing educational opportunities.
+                Submit scholarship applications, upload required documents, and follow each step from verification to final decision.
               </p>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -85,22 +83,22 @@ export const HomePage = () => {
                 />
                 <div style={{ padding: '1.25rem 1.5rem' }}>
                   <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>
-                    "FinSaarthi helped me secure ₹2 lakhs for my engineering degree. The process was seamless!"
+                    "Application updates, verification checks, and decision status are available in one workflow."
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.9rem' }}>
                     <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--btn-primary-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0 }}>
-                      A
+                      P
                     </div>
                     <div>
-                      <p style={{ margin: 0, fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Ayush Sharma</p>
-                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Computer Engineering Student</p>
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Process Visibility</p>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Application Lifecycle</p>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="hero-badge">
-                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>🎓 2,000+ Students</p>
-                <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: 2 }}>secured scholarships this year</p>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Status Tracking</p>
+                <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: 2 }}>live updates in student dashboard</p>
               </div>
             </div>
 
@@ -115,7 +113,17 @@ export const HomePage = () => {
         ref={statsRef}
         style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '3.5rem 1.5rem', transition: 'background 0.35s ease' }}
       >
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <p style={{ margin: '0 0 0.5rem', color: 'var(--text-tertiary)', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              How It Works
+            </p>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+              Application → Verification → Review → Decision
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem' }}>
           {stats.map((s, i) => (
             <div
               key={i}
@@ -149,6 +157,7 @@ export const HomePage = () => {
               </div>
             </div>
           ))}
+          </div>
         </div>
       </section>
 
@@ -217,7 +226,7 @@ export const HomePage = () => {
             data-reveal="text"
             style={{ color: 'var(--text-secondary)', marginBottom: '2.25rem', fontSize: '1rem', '--reveal-delay': '0.18s' }}
           >
-            Join thousands of students who've already found their perfect scholarship match.
+            Create an account to submit applications, track statuses, and view verification progress.
           </p>
 
           {!user && (
@@ -241,19 +250,18 @@ function FeatureHeading() {
   const ref = useScrollReveal(0.2);
   return (
     <div ref={ref} style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-      <p data-reveal="text" className="section-label">Why FinSaarthi?</p>
+      <p data-reveal="text" className="section-label">Real Features</p>
       <h2
         data-reveal
         style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: '0.75rem', '--reveal-delay': '0.08s' }}
       >
-        Everything you need,{' '}
-        <span className="text-gradient">nothing you don't.</span>
+        Built for transparent scholarship processing.
       </h2>
       <p
         data-reveal="text"
         style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: '50ch', margin: '0 auto', '--reveal-delay': '0.14s' }}
       >
-        A comprehensive platform built to make scholarship discovery and application effortless.
+        These capabilities reflect the current application, verification, review, and tracking workflow.
       </p>
     </div>
   );

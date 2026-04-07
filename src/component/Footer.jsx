@@ -14,16 +14,32 @@ import {
 const AdminFooter = () => (
   <footer className="border-t border-gray-700/50 py-6 mt-16"
     style={{ background: 'var(--bg-surface)', transition: 'background 0.35s ease' }}>
-    <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <div className="flex items-center space-x-2">
-        <BookOpen className="text-orange-500 w-5 h-5" />
-        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          FinSaarthi
-        </span>
+    <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <div className="flex items-center space-x-2">
+          <BookOpen className="text-orange-500 w-5 h-5" />
+          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            FinSaarthi
+          </span>
+        </div>
+        <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+          Need help with application review workflows or want to share feedback? Reach out to the support team.
+        </p>
       </div>
-      <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-        © {new Date().getFullYear()} FinSaarthi — Admin Portal
-      </p>
+
+      <div className="text-xs space-y-1" style={{ color: 'var(--text-tertiary)' }}>
+        <p className="flex items-center gap-2">
+          <Mail className="w-4 h-4 text-orange-400" />
+          <a href="mailto:finsaarthiindia@gmail.com" className="hover:text-orange-400">
+            finsaarthiindia@gmail.com
+          </a>
+        </p>
+        <p className="flex items-center gap-2">
+          <Phone className="w-4 h-4 text-orange-400" />
+          <span>+91 98765 43210</span>
+        </p>
+        <p>© {new Date().getFullYear()} FinSaarthi — Admin Portal</p>
+      </div>
     </div>
   </footer>
 );
@@ -67,7 +83,7 @@ const PublicFooter = () => (
         <ul className="space-y-3 text-sm">
           <li className="flex items-center space-x-2">
             <Mail className="w-5 h-5 text-orange-400" />
-            <span>support@finsaarthi.com</span>
+            <span>finsaarthiindia@gmail.com</span>
           </li>
           <li className="flex items-center space-x-2">
             <Phone className="w-5 h-5 text-orange-400" />
