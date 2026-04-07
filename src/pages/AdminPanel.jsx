@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import apiClient from '../api/client';
 import { ScholarshipCard } from '../component/ScholarshipCard';
-import { Plus, CreditCard as Edit, Trash2, BookOpen, CheckCircle, Clock, Search, FileText, Loader, X, Link as LinkIcon } from 'lucide-react';
+import { Plus, CreditCard as Edit, Trash2, BookOpen, CheckCircle, Clock, Search, FileText, Loader, X, Link as LinkIcon, ClipboardCheck, AlertTriangle } from 'lucide-react';
 
 const parseDate = (d) => {
   if (!d) return '';
@@ -111,6 +111,9 @@ export const AdminPanel = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [updatingApplicationIds, setUpdatingApplicationIds] = useState([]);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ status: '', notes: '', rejectionReason: '' });
+  const [pendingConfirmation, setPendingConfirmation] = useState(null);
 
   const [scholarshipForm, setScholarshipForm] = useState({
     title: '', amount: 0, eligibility: [''], deadline: '',
@@ -153,7 +156,7 @@ export const AdminPanel = () => {
           totalApplications: safeApplications.length,
           approvedApplications: safeApplications.filter(app => (app.status || '').toUpperCase() === 'APPROVED').length,
           rejectedApplications: safeApplications.filter(app => (app.status || '').toUpperCase() === 'REJECTED').length,
-          pendingApplications: safeApplications.filter(app => ['PENDING', 'UNDER_REVIEW'].includes((app.status || '').toUpperCase())).length,
+          pendingApplications: safeApplications.filter(app => ['PENDING', 'UNDER_REVIEW', 'VERIFIED'].includes((app.status || '').toUpperCase())).length,
           approvalRate: safeApplications.length === 0 ? 0 : Number(((safeApplications.filter(app => (app.status || '').toUpperCase() === 'APPROVED').length * 100) / safeApplications.length).toFixed(1)),
         });
         setApplicationTrends(safeTrends);
@@ -274,12 +277,86 @@ export const AdminPanel = () => {
       };
 
       setApplications(prev => prev.map(app => app.id === applicationId ? updatedApplication : app));
+      setSelectedApplication((prev) => prev && prev.id === applicationId ? updatedApplication : prev);
     } catch (error) {
       console.error("Failed to update status:", error);
       alert(error?.response?.data?.message || "Failed to update status.");
     } finally {
       setUpdatingApplicationIds((prev) => prev.filter((id) => id !== applicationId));
     }
+  };
+
+  const handleUpdateDocumentVerification = async (applicationId, documentId, verified, notes = '') => {
+    if (!documentId || updatingApplicationIds.includes(applicationId)) {
+      return;
+    }
+
+    try {
+      setUpdatingApplicationIds((prev) => [...prev, applicationId]);
+      const res = await apiClient.patch(`/applications/${applicationId}/documents/${documentId}/verification`, {
+        verified,
+        notes: notes || null,
+      });
+
+      const updatedApplication = {
+        ...res.data,
+        documents: normalizeDocuments(res.data?.documents),
+      };
+
+      setApplications((prev) => prev.map((app) => app.id === applicationId ? updatedApplication : app));
+      setSelectedApplication((prev) => prev && prev.id === applicationId ? updatedApplication : prev);
+    } catch (error) {
+      console.error('Failed to update document verification:', error);
+      alert(error?.response?.data?.message || 'Failed to update document verification.');
+    } finally {
+      setUpdatingApplicationIds((prev) => prev.filter((id) => id !== applicationId));
+    }
+  };
+
+  const getAllowedNextStatuses = (status) => {
+    const current = (status || '').toUpperCase();
+    if (current === 'PENDING') return ['UNDER_REVIEW'];
+    if (current === 'UNDER_REVIEW') return ['VERIFIED'];
+    if (current === 'VERIFIED') return ['APPROVED', 'REJECTED'];
+    return [];
+  };
+
+  const openReviewModal = (application) => {
+    setSelectedApplication(application);
+    setReviewForm({ status: '', notes: application.adminNotes || '', rejectionReason: '' });
+    setPendingConfirmation(null);
+  };
+
+  const submitReviewDecision = () => {
+    if (!selectedApplication || !reviewForm.status) {
+      return;
+    }
+
+    if (reviewForm.status === 'REJECTED' && !reviewForm.rejectionReason.trim()) {
+      alert('Rejection reason is required.');
+      return;
+    }
+
+    if (reviewForm.status === 'APPROVED' && !selectedApplication.allDocumentsVerified) {
+      alert('All submitted documents must be verified before approval.');
+      return;
+    }
+
+    const decisionNotes = reviewForm.status === 'REJECTED'
+      ? reviewForm.rejectionReason.trim()
+      : reviewForm.notes.trim();
+
+    const needsConfirmation = ['APPROVED', 'REJECTED'].includes(reviewForm.status);
+    if (needsConfirmation) {
+      setPendingConfirmation({
+        applicationId: selectedApplication.id,
+        status: reviewForm.status,
+        notes: decisionNotes,
+      });
+      return;
+    }
+
+    handleUpdateApplicationStatus(selectedApplication.id, reviewForm.status, decisionNotes);
   };
 
   // Field arrays
@@ -387,7 +464,7 @@ export const AdminPanel = () => {
 
         <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 1.5rem' }}>
-            {[{ id: 'scholarships', label: 'Manage Scholarships' }, { id: 'applications', label: `Review Applications (${applications.filter(a => (a.status || '').toUpperCase() === 'PENDING').length})` }].map(t => (
+            {[{ id: 'scholarships', label: 'Manage Scholarships' }, { id: 'applications', label: `Review Applications (${applications.filter(a => ['PENDING', 'UNDER_REVIEW', 'VERIFIED'].includes((a.status || '').toUpperCase())).length})` }].map(t => (
               <button
                 key={t.id} onClick={() => setActiveTab(t.id)}
                 style={{ padding: '1rem 0.25rem', marginRight: '2rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600, color: activeTab === t.id ? '#EA580C' : 'var(--text-secondary)', borderBottom: `2px solid ${activeTab === t.id ? '#EA580C' : 'transparent'}`, transition: 'all 0.2s' }}
@@ -430,6 +507,7 @@ export const AdminPanel = () => {
                     <option value="">All Statuses</option>
                     <option value="PENDING">Pending</option>
                     <option value="UNDER_REVIEW">Under Review</option>
+                    <option value="VERIFIED">Verified</option>
                     <option value="APPROVED">Approved</option>
                     <option value="REJECTED">Rejected</option>
                   </select>
@@ -442,7 +520,7 @@ export const AdminPanel = () => {
                       const student = getUserById(app.studentId) || { name: 'Unknown User', email: '' };
                       const submittedDocuments = app.documents || [];
                       const isUpdatingStatus = updatingApplicationIds.includes(app.id);
-                      const sd = app.studentDetails || {};
+                      const reviewHistory = Array.isArray(app.reviewHistory) ? app.reviewHistory : [];
 
                       return (
                         <div key={app.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.25rem 1.5rem' }}>
@@ -456,51 +534,104 @@ export const AdminPanel = () => {
                             </span>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                            <div><strong style={{color: 'var(--text-primary)'}}>Phone:</strong> {app.applicantPhone || 'N/A'}</div>
-                            <div><strong style={{color: 'var(--text-primary)'}}>Location:</strong> {app.location || 'N/A'}</div>
-                            <div><strong style={{color: 'var(--text-primary)'}}>Class:</strong> {app.studentClass || 'N/A'}</div>
-                            <div><strong style={{color: 'var(--text-primary)'}}>GPA:</strong> {app.gpa || 'N/A'}</div>
-                            <div><strong style={{color: 'var(--text-primary)'}}>10th Marks:</strong> {app.marks10th ? `${app.marks10th}%` : 'N/A'}</div>
-                            <div><strong style={{color: 'var(--text-primary)'}}>12th Marks:</strong> {app.marks12th ? `${app.marks12th}%` : 'N/A'}</div>
-                            
-                            <div style={{ gridColumn: '1 / -1', background: 'var(--bg-surface)', padding: '0.75rem', borderRadius: 8, marginTop: '0.5rem' }}>
-                              <p style={{ margin: '0 0 0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>Family Details:</p>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
-                                <div><strong style={{color: 'var(--text-primary)'}}>Parent:</strong> {app.parentName || 'N/A'}</div>
-                                <div><strong style={{color: 'var(--text-primary)'}}>Occupation:</strong> {app.parentOccupation || 'N/A'}</div>
-                                <div><strong style={{color: 'var(--text-primary)'}}>Mobile:</strong> {app.parentMobile || 'N/A'}</div>
+                          <div style={{ display: 'grid', gap: '0.9rem', marginBottom: '1.25rem' }}>
+                            <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '0.8rem' }}>
+                              <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>Personal Info</p>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>Name:</strong> {app.applicantName || 'N/A'}</div>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>Email:</strong> {app.applicantEmail || 'N/A'}</div>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>Phone:</strong> {app.applicantPhone || 'N/A'}</div>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>Location:</strong> {app.location || 'N/A'}</div>
+                                <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: 'var(--text-primary)' }}>Address:</strong> {app.applicantAddress || 'N/A'}</div>
                               </div>
                             </div>
 
-                            <div style={{ gridColumn: '1 / -1' }}><strong style={{color: 'var(--text-primary)'}}>Education:</strong> {app.applicantEducation || 'N/A'}</div>
-                            <div style={{ gridColumn: '1 / -1' }}><strong style={{color: 'var(--text-primary)'}}>Address:</strong> {app.applicantAddress || 'N/A'}</div>
-                            
-                            <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
-                              <strong style={{color: 'var(--text-primary)', display: 'block', marginBottom: '0.4rem'}}>Submitted Documents:</strong>
+                            <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '0.8rem' }}>
+                              <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>Academic Info</p>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>Class:</strong> {app.studentClass || 'N/A'}</div>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>GPA:</strong> {app.gpa || 'N/A'}</div>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>10th Marks:</strong> {app.marks10th ? `${app.marks10th}%` : 'N/A'}</div>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>12th Marks:</strong> {app.marks12th ? `${app.marks12th}%` : 'N/A'}</div>
+                                <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: 'var(--text-primary)' }}>Education:</strong> {app.applicantEducation || 'N/A'}</div>
+                              </div>
+                            </div>
+
+                            <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '0.8rem' }}>
+                              <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>Family Info</p>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>Parent:</strong> {app.parentName || 'N/A'}</div>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>Occupation:</strong> {app.parentOccupation || 'N/A'}</div>
+                                <div><strong style={{ color: 'var(--text-primary)' }}>Mobile:</strong> {app.parentMobile || 'N/A'}</div>
+                              </div>
+                            </div>
+
+                            <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '0.8rem' }}>
+                              <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>Documents</p>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 {submittedDocuments.length > 0 ? submittedDocuments.map((document) => (
-                                  <div key={document.id || document.link} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
-                                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{document.name}:</span>
-                                    <a
-                                      href={document.link}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{ color: '#EA580C', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                                    >
-                                      <LinkIcon size={12} />
-                                      {document.link.length > 60 ? `${document.link.substring(0, 60)}...` : document.link}
-                                    </a>
+                                  <div key={document.id || document.link} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{document.name}</span>
+                                      <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, color: document.verified ? '#1f7a33' : '#9a6700', background: document.verified ? 'rgba(52,199,89,0.12)' : 'rgba(255,159,10,0.14)' }}>
+                                        {document.verified ? 'VERIFIED' : 'PENDING VERIFICATION'}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                      <a href={document.link} target="_blank" rel="noopener noreferrer" className="apple-btn" style={{ fontSize: '0.75rem', padding: '0.35rem 0.7rem' }}>
+                                        <LinkIcon size={12} /> View
+                                      </a>
+                                      <button
+                                        disabled={isUpdatingStatus || !document.id}
+                                        onClick={() => {
+                                          const note = window.prompt('Optional document verification note:') || '';
+                                          handleUpdateDocumentVerification(app.id, document.id, !document.verified, note);
+                                        }}
+                                        className="apple-btn"
+                                        style={{
+                                          fontSize: '0.75rem',
+                                          padding: '0.35rem 0.7rem',
+                                          background: document.verified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)',
+                                          color: document.verified ? '#ff3b30' : '#1f7a33',
+                                          opacity: isUpdatingStatus ? 0.6 : 1,
+                                          cursor: isUpdatingStatus ? 'not-allowed' : 'pointer',
+                                        }}
+                                      >
+                                        {document.verified ? 'Mark Invalid' : 'Mark Verified'}
+                                      </button>
+                                    </div>
                                   </div>
-                                )) : 'No documents provided'}
+                                )) : <span style={{ color: 'var(--text-secondary)' }}>No documents provided</span>}
                               </div>
+                            </div>
+
+                            <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '0.8rem' }}>
+                              <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>Audit Trail</p>
+                              {reviewHistory.length > 0 ? (
+                                <div style={{ display: 'grid', gap: '0.4rem' }}>
+                                  {reviewHistory.slice(0, 5).map((entry) => (
+                                    <div key={entry.id || `${entry.timestamp}-${entry.action}`} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                      <strong style={{ color: 'var(--text-primary)' }}>{entry.action}</strong>
+                                      {entry.fromStatus || entry.toStatus ? ` (${entry.fromStatus || '-'} → ${entry.toStatus || '-'})` : ''}
+                                      {entry.adminEmail ? ` by ${entry.adminEmail}` : ''}
+                                      {entry.timestamp ? ` at ${new Date(entry.timestamp).toLocaleString()}` : ''}
+                                      {entry.notes ? ` | ${entry.notes}` : ''}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>No review actions recorded yet.</span>
+                              )}
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <button disabled={isUpdatingStatus} onClick={() => handleUpdateApplicationStatus(app.id, 'UNDER_REVIEW')} className="apple-btn" style={{ background: 'rgba(255,159,10,0.1)', color: '#b8860b', padding: '0.4rem 0.8rem', fontSize: '0.8rem', opacity: isUpdatingStatus ? 0.6 : 1, cursor: isUpdatingStatus ? 'not-allowed' : 'pointer' }}>{isUpdatingStatus ? 'Updating...' : 'Under Review'}</button>
-                            <button disabled={isUpdatingStatus} onClick={() => handleUpdateApplicationStatus(app.id, 'APPROVED')} className="apple-btn" style={{ background: 'rgba(52,199,89,0.1)', color: '#248a3d', padding: '0.4rem 0.8rem', fontSize: '0.8rem', opacity: isUpdatingStatus ? 0.6 : 1, cursor: isUpdatingStatus ? 'not-allowed' : 'pointer' }}>{isUpdatingStatus ? 'Updating...' : 'Approve'}</button>
-                            <button disabled={isUpdatingStatus} onClick={() => { const n = window.prompt('Rejection Reason:'); if (n !== null) handleUpdateApplicationStatus(app.id, 'REJECTED', n); }} className="apple-btn" style={{ background: 'rgba(255,59,48,0.1)', color: '#ff3b30', padding: '0.4rem 0.8rem', fontSize: '0.8rem', opacity: isUpdatingStatus ? 0.6 : 1, cursor: isUpdatingStatus ? 'not-allowed' : 'pointer' }}>{isUpdatingStatus ? 'Updating...' : 'Reject'}</button>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.82rem', color: selectedApplication?.id === app.id ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                              {app.allDocumentsVerified ? 'All documents verified' : 'Some documents still need verification'}
+                            </span>
+                            <button disabled={isUpdatingStatus} onClick={() => openReviewModal(app)} className="apple-btn" style={{ background: 'rgba(234,88,12,0.12)', color: '#EA580C', padding: '0.45rem 0.9rem', fontSize: '0.8rem', opacity: isUpdatingStatus ? 0.6 : 1, cursor: isUpdatingStatus ? 'not-allowed' : 'pointer' }}>
+                              <ClipboardCheck size={14} style={{ marginRight: '0.35rem' }} /> Open Review
+                            </button>
                           </div>
                         </div>
                       );
@@ -517,6 +648,98 @@ export const AdminPanel = () => {
 
       {/* ── Add/Edit Scholarship Modal ── */}
       <AnimatePresence>
+        {selectedApplication && (
+          <Modal onClose={() => { setSelectedApplication(null); setPendingConfirmation(null); }}>
+            <h2 style={{ margin: '0 0 1rem', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Structured Review Workflow
+            </h2>
+            <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Current status: <strong style={{ color: 'var(--text-primary)' }}>{(selectedApplication.status || 'PENDING').toUpperCase()}</strong>
+            </p>
+
+            <FormField label="NEXT STATUS">
+              <select
+                value={reviewForm.status}
+                onChange={(e) => setReviewForm((prev) => ({ ...prev, status: e.target.value }))}
+                style={{ ...formInput, cursor: 'pointer' }}
+              >
+                <option value="">Select status</option>
+                {getAllowedNextStatuses(selectedApplication.status).map((status) => (
+                  <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="DECISION NOTES">
+              <textarea
+                rows={3}
+                value={reviewForm.notes}
+                onChange={(e) => setReviewForm((prev) => ({ ...prev, notes: e.target.value }))}
+                style={{ ...formInput, resize: 'vertical' }}
+                placeholder="Notes sent in status notification email"
+              />
+            </FormField>
+
+            {reviewForm.status === 'REJECTED' && (
+              <FormField label="REJECTION REASON (REQUIRED)">
+                <textarea
+                  rows={3}
+                  required
+                  value={reviewForm.rejectionReason}
+                  onChange={(e) => setReviewForm((prev) => ({ ...prev, rejectionReason: e.target.value }))}
+                  style={{ ...formInput, resize: 'vertical', borderColor: '#ffb4ad' }}
+                  placeholder="Clearly explain why the application was rejected"
+                />
+              </FormField>
+            )}
+
+            {reviewForm.status === 'APPROVED' && !selectedApplication.allDocumentsVerified && (
+              <div style={{ marginBottom: '1rem', padding: '0.7rem 0.8rem', borderRadius: 10, background: 'rgba(255,159,10,0.14)', color: '#8d5b00', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <AlertTriangle size={16} />
+                Approval is blocked until all documents are verified.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.7rem' }}>
+              <button className="apple-btn apple-btn-secondary" onClick={() => setSelectedApplication(null)}>Cancel</button>
+              <button
+                className="apple-btn apple-btn-primary"
+                disabled={!reviewForm.status || updatingApplicationIds.includes(selectedApplication.id)}
+                onClick={submitReviewDecision}
+              >
+                {updatingApplicationIds.includes(selectedApplication.id) ? 'Submitting...' : 'Continue'}
+              </button>
+            </div>
+          </Modal>
+        )}
+
+        {pendingConfirmation && (
+          <Modal onClose={() => setPendingConfirmation(null)}>
+            <h3 style={{ marginTop: 0, color: 'var(--text-primary)', fontWeight: 800 }}>Confirm Final Decision</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              You are about to mark this application as <strong style={{ color: 'var(--text-primary)' }}>{pendingConfirmation.status}</strong>.
+              This will notify the applicant by email.
+            </p>
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '0.8rem', marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Notes: {pendingConfirmation.notes || 'No notes provided'}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.7rem' }}>
+              <button className="apple-btn apple-btn-secondary" onClick={() => setPendingConfirmation(null)}>Back</button>
+              <button
+                className="apple-btn"
+                style={{ background: pendingConfirmation.status === 'APPROVED' ? '#248a3d' : '#c53030', color: 'white' }}
+                onClick={() => {
+                  handleUpdateApplicationStatus(pendingConfirmation.applicationId, pendingConfirmation.status, pendingConfirmation.notes);
+                  setPendingConfirmation(null);
+                  setSelectedApplication(null);
+                }}
+              >
+                Confirm {pendingConfirmation.status}
+              </button>
+            </div>
+          </Modal>
+        )}
+
         {showScholarshipModal && (
           <Modal onClose={() => { setShowScholarshipModal(false); resetForm(); }}>
             <h2 style={{ margin: '0 0 1.5rem', fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
