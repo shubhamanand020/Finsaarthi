@@ -52,6 +52,45 @@ const FormField = ({ label, children }) => (
 export const AdminPanel = () => {
   const { user } = useAuth();
 
+  const normalizeDocuments = (documents = []) => {
+    if (!Array.isArray(documents)) return [];
+
+    const seenLinks = new Set();
+
+    return documents
+      .map((document) => {
+        const rawLink = typeof document?.link === 'string' ? document.link.trim() : '';
+        if (!rawLink) return null;
+
+        // Keep only valid http/https links so bad payloads do not pollute state.
+        let normalizedLink = rawLink;
+        try {
+          const url = new URL(rawLink);
+          if (!['http:', 'https:'].includes(url.protocol)) {
+            return null;
+          }
+          normalizedLink = url.toString();
+        } catch {
+          return null;
+        }
+
+        const dedupeKey = normalizedLink.toLowerCase();
+        if (seenLinks.has(dedupeKey)) return null;
+        seenLinks.add(dedupeKey);
+
+        const safeName = typeof document?.name === 'string' && document.name.trim()
+          ? document.name.trim()
+          : 'Document';
+
+        return {
+          ...document,
+          name: safeName,
+          link: normalizedLink,
+        };
+      })
+      .filter(Boolean);
+  };
+
   const [scholarships, setScholarships] = useState([]);
   const [applications, setApplications] = useState([]);
   const [users, setUsers] = useState([]);
@@ -127,22 +166,6 @@ export const AdminPanel = () => {
 
     if (user && user.role === 'admin') fetchAdminData();
   }, [user]);
-
-  const normalizeDocuments = (documents = []) => {
-    if (!Array.isArray(documents)) return [];
-
-    const seen = new Set();
-    return documents.filter((document) => {
-      const name = (document?.name || '').trim();
-      const link = (document?.link || '').trim();
-      if (!name && !link) return false;
-
-      const key = `${name.toLowerCase()}::${link}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  };
 
   const getScholarshipById = (id) => scholarships.find(s => s.id === id);
   const getUserById = (id) => users.find(u => u.id === id);
@@ -417,7 +440,7 @@ export const AdminPanel = () => {
                     {filteredApplications.map(app => {
                       const scholarship = getScholarshipById(app.scholarshipId) || { title: 'Unknown' };
                       const student = getUserById(app.studentId) || { name: 'Unknown User', email: '' };
-                      const submittedDocuments = normalizeDocuments(app.documents);
+                      const submittedDocuments = app.documents || [];
                       const isUpdatingStatus = updatingApplicationIds.includes(app.id);
                       const sd = app.studentDetails || {};
 
@@ -457,7 +480,7 @@ export const AdminPanel = () => {
                               <strong style={{color: 'var(--text-primary)', display: 'block', marginBottom: '0.4rem'}}>Submitted Documents:</strong>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 {submittedDocuments.length > 0 ? submittedDocuments.map((document) => (
-                                  <div key={`${app.id}-${document.name}-${document.link}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                                  <div key={document.id || document.link} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
                                     <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{document.name}:</span>
                                     <a
                                       href={document.link}
