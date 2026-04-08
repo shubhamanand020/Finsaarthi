@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Menu, X, Sun, Moon } from 'lucide-react';
+import finsaarthiLogo from '../../finsaarthi_logo.png';
 
 export const Navigation = () => {
   const { user, logout } = useAuth();
@@ -46,9 +47,9 @@ export const Navigation = () => {
         {/* ── Logo ── */}
         <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <img
-            src="https://t4.ftcdn.net/jpg/04/30/99/51/360_F_430995143_Y8xc25yIRX1Q1X6KOdEBLWxuNV4f8I9X.jpg"
+            src={finsaarthiLogo}
             alt="FinSaarthi"
-            style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 8 }}
+            style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 8 }}
           />
           <span className="nav-logo-text">FinSaarthi</span>
         </Link>
