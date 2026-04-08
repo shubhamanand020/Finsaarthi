@@ -332,7 +332,7 @@ export const ProfilePage = () => {
               {pageTitle}
             </span>
 
-            <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)', display: 'grid', gap: '0.75rem', textAlign: 'left' }}>
+            <div style={{ marginTop: '1.8rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)', display: 'grid', gap: '0.75rem', textAlign: 'center' }}>
               <div>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Account Type</p>
                 <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>{isAdmin ? 'Administrator' : 'Student'}</p>
