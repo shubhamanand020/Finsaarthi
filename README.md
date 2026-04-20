@@ -5,7 +5,7 @@
 ## Repositories
 
 - **Frontend**: [FinSaarthi-Frontend](https://github.com/shubhamanand020/Finsaarthi) (this repository)
-- **Backend**: [FinSaarthi-Backend](https://github.com/shubhamanand020/Finsaarthi/tree/main/finsaarthi-backend)
+- **Backend**: [FinSaarthi-Backend](https://github.com/shubhamanand020/Finsaarthi_backend)
 
 ## Project Overview
 
@@ -260,4 +260,3 @@ For questions, issues, or feedback about the frontend:
 - Issues: Use the GitHub repository Issues tab
 - Email: finsaarthiindia@gmail.com
 - GitHub: [@shubhamanand020](https://github.com/shubhamanand020)
-- Backend Documentation: See [finsaarthi-backend/README.md](https://github.com/shubhamanand020/Finsaarthi/tree/main/finsaarthi-backend)
