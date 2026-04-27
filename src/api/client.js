@@ -1,8 +1,22 @@
 import axios from 'axios';
 
-// Create an Axios instance using the base URL from env variables
+const normalizeApiBaseUrl = (value) => {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return null;
+
+    const hasProtocol = /^https?:\/\//i.test(trimmed);
+    if (!hasProtocol) return null;
+
+    return trimmed.replace(/\/+$/, '');
+};
+
+const resolvedBaseUrl =
+    normalizeApiBaseUrl(import.meta.env.VITE_API_URL) ||
+    'http://localhost:8080/api';
+
+// Create an Axios instance using a normalized base URL
 const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+    baseURL: resolvedBaseUrl,
     headers: {
         'Content-Type': 'application/json',
     },

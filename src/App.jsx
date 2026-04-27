@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './component/Layout';
 import { ErrorBoundary } from './component/ErrorBoundary';
+import { ProtectedRoute } from './component/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -52,11 +53,39 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/register/student" element={<RegisterPage />} />
                 <Route path="/register/verify-otp" element={<VerifyRegistrationOtpPage />} />
-                <Route path="/dashboard" element={<StudentDashboard />} />
-                <Route path="/admin" element={<AdminPanel />} />
+                <Route
+                  path="/dashboard"
+                  element={(
+                    <ProtectedRoute allowedRoles={['student']}>
+                      <StudentDashboard />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
+                  path="/admin"
+                  element={(
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <AdminPanel />
+                    </ProtectedRoute>
+                  )}
+                />
                 <Route path="/scholarships" element={<ScholarshipsPage />} />
-                <Route path="/scholarships/:id/apply" element={<ScholarshipApplyPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
+                <Route
+                  path="/scholarships/:id/apply"
+                  element={(
+                    <ProtectedRoute allowedRoles={['student']}>
+                      <ScholarshipApplyPage />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
+                  path="/profile"
+                  element={(
+                    <ProtectedRoute allowedRoles={['student', 'admin']}>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  )}
+                />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/forgot-password/verify-otp" element={<VerifyForgotOtpPage />} />
                 <Route path="/forgot-password/update-password" element={<UpdateForgotPasswordPage />} />

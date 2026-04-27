@@ -5,6 +5,7 @@ import { AlertCircle, ArrowLeft, KeyRound, ShieldCheck } from 'lucide-react';
 import apiClient from '../api/client';
 
 const EMAIL_STORAGE_KEY = 'forgotPasswordEmail';
+const RESET_TOKEN_STORAGE_KEY = 'forgotPasswordResetToken';
 
 export const VerifyForgotOtpPage = () => {
   const navigate = useNavigate();
@@ -36,7 +37,16 @@ export const VerifyForgotOtpPage = () => {
 
     setLoading(true);
     try {
-      await apiClient.post('/auth/verify-forgot-otp', { email, otp: otp.trim() });
+      const response = await apiClient.post('/auth/verify-forgot-otp', { email, otp: otp.trim() });
+      const resetToken = response?.data?.resetToken;
+
+      if (!resetToken) {
+        triggerError('OTP verified, but password reset session could not be created. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      sessionStorage.setItem(RESET_TOKEN_STORAGE_KEY, resetToken);
       navigate('/forgot-password/update-password');
     } catch (err) {
       triggerError(err.response?.data?.message || 'Unable to verify OTP.');

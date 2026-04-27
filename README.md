@@ -115,19 +115,13 @@ Create a .env file in the frontend root.
 Example:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080/api
+VITE_API_URL=http://localhost:8080/api
 ```
 
 Current implementation note:
 
 - src/api/client.js reads VITE_API_URL.
-- To match existing code without modifications, set:
-
-```env
-VITE_API_URL=http://localhost:8080/api
-```
-
-If you standardize on VITE_API_BASE_URL, update the Axios client accordingly.
+- Ensure the value includes protocol and /api suffix (example: https://your-backend-domain/api).
 
 ## Application Workflow
 

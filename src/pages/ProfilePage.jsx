@@ -69,7 +69,7 @@ const getFriendlyError = (error, fallbackMessage) => {
     return error.response.data.message;
   }
   if (error.message === 'Network Error') {
-    return 'Unable to reach the backend. Please make sure the API server is running on http://localhost:8080.';
+    return 'Unable to reach the backend. Please make sure the API server is running and VITE_API_URL is configured correctly.';
   }
   return fallbackMessage;
 };

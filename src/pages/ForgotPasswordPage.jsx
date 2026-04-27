@@ -5,6 +5,7 @@ import { AlertCircle, ArrowLeft, Mail, Send } from 'lucide-react';
 import apiClient from '../api/client';
 
 const EMAIL_STORAGE_KEY = 'forgotPasswordEmail';
+const RESET_TOKEN_STORAGE_KEY = 'forgotPasswordResetToken';
 
 export const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ export const ForgotPasswordPage = () => {
     try {
       await apiClient.post('/auth/forgot-password', { email: normalizedEmail });
       sessionStorage.setItem(EMAIL_STORAGE_KEY, normalizedEmail);
+      sessionStorage.removeItem(RESET_TOKEN_STORAGE_KEY);
       navigate('/forgot-password/verify-otp');
     } catch (err) {
       triggerError(err.response?.data?.message || 'Unable to send OTP right now.');

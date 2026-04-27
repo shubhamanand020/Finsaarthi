@@ -6,10 +6,12 @@ import apiClient from '../api/client';
 import { toast } from 'react-hot-toast';
 
 const EMAIL_STORAGE_KEY = 'forgotPasswordEmail';
+const RESET_TOKEN_STORAGE_KEY = 'forgotPasswordResetToken';
 
 export const UpdateForgotPasswordPage = () => {
   const navigate = useNavigate();
   const email = useMemo(() => sessionStorage.getItem(EMAIL_STORAGE_KEY) || '', []);
+  const resetToken = useMemo(() => sessionStorage.getItem(RESET_TOKEN_STORAGE_KEY) || '', []);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -33,6 +35,12 @@ export const UpdateForgotPasswordPage = () => {
       return;
     }
 
+    if (!resetToken) {
+      triggerError('Password reset session expired. Please verify OTP again.');
+      navigate('/forgot-password/verify-otp');
+      return;
+    }
+
     if (password.length < 8) {
       triggerError('Password must be at least 8 characters.');
       return;
@@ -47,8 +55,10 @@ export const UpdateForgotPasswordPage = () => {
       await apiClient.post('/auth/update-password', {
         email,
         newPassword: password,
+        resetToken,
       });
       sessionStorage.removeItem(EMAIL_STORAGE_KEY);
+      sessionStorage.removeItem(RESET_TOKEN_STORAGE_KEY);
       toast.success('Password updated successfully. You can now log in.');
       navigate('/login/student');
     } catch (err) {
