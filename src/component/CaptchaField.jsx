@@ -13,6 +13,11 @@ export const CaptchaField = ({
   const [isLoading, setIsLoading] = useState(false);
   const [captchaError, setCaptchaError] = useState('');
 
+  const resolveCaptchaImageSrc = (image) => {
+    if (!image) return '';
+    return image.startsWith('data:') ? image : `data:image/png;base64,${image}`;
+  };
+
   const fetchCaptcha = async () => {
     try {
       setIsLoading(true);
@@ -50,7 +55,7 @@ export const CaptchaField = ({
         <div style={{ minHeight: 60, minWidth: 180, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           {captchaImage ? (
             <img
-              src={`data:image/png;base64,${captchaImage}`}
+              src={resolveCaptchaImageSrc(captchaImage)}
               alt="Captcha"
               style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
             />

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import apiClient from '../api/client';
+import apiClient, { extractArrayPayload } from '../api/client';
 import { ScholarshipCard } from '../component/ScholarshipCard';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import { Search, BookOpen, X, SlidersHorizontal, Loader, Info } from 'lucide-react';
@@ -78,13 +78,14 @@ export const ScholarshipsPage = () => {
         setIsLoading(true);
         // Fetch active scholarships
         const schRes = await apiClient.get('/scholarships');
-        const activeScholarships = schRes.data.filter(s => s.isActive !== false);
+        const safeScholarships = extractArrayPayload(schRes.data);
+        const activeScholarships = safeScholarships.filter((s) => s.isActive !== false);
         setScholarships(activeScholarships);
 
         // Fetch user's existing applications to map "Applied" status
         if (user && user.role === 'student') {
           const appRes = await apiClient.get('/applications/my');
-          setUserApplications(appRes.data);
+          setUserApplications(extractArrayPayload(appRes.data));
         }
       } catch (error) {
         console.error("Failed to fetch scholarships", error);

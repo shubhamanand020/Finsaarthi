@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import apiClient from '../api/client';
+import apiClient, { extractArrayPayload } from '../api/client';
 import { ScholarshipCard } from '../component/ScholarshipCard';
 import { Plus, CreditCard as Edit, Trash2, BookOpen, CheckCircle, Clock, Search, FileText, Loader, X, Link as LinkIcon, ClipboardCheck, AlertTriangle } from 'lucide-react';
 
@@ -158,11 +158,11 @@ export const AdminPanel = () => {
           apiClient.get('/admin/dashboard/trends').catch(() => ({ data: [] }))        
         ]);
         
-        const safeScholarships = Array.isArray(schRes.data) ? schRes.data : (schRes.data?.content || schRes.data?.data || []);
-        const safeApplications = Array.isArray(appRes.data) ? appRes.data : (appRes.data?.content || appRes.data?.data || []);
-        const safeUsers = Array.isArray(usrRes.data) ? usrRes.data : (usrRes.data?.content || usrRes.data?.data || []);
+        const safeScholarships = extractArrayPayload(schRes.data);
+        const safeApplications = extractArrayPayload(appRes.data);
+        const safeUsers = extractArrayPayload(usrRes.data);
         const safeStats = statsRes.data || null;
-        const safeTrends = Array.isArray(trendsRes.data) ? trendsRes.data : [];
+        const safeTrends = extractArrayPayload(trendsRes.data);
 
         // Normalize backend field names: eligibilityCriteria -> eligibility
         const normalized = safeScholarships.map(s => ({

@@ -36,6 +36,13 @@ const isHtmlDocumentResponse = (response) => {
     return contentType.includes('text/html');
 };
 
+export const extractArrayPayload = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.content)) return payload.content;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return [];
+};
+
 // Create an Axios instance using a normalized base URL
 const apiClient = axios.create({
     ...(resolvedBaseUrl ? { baseURL: resolvedBaseUrl } : {}),
