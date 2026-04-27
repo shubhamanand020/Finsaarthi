@@ -176,7 +176,7 @@ This frontend is deployed on Vercel at [https://finsaarthi-six.vercel.app/](http
 2. Import project in Vercel from your GitHub repository
 3. Configure environment variables in Vercel project settings:
    ```
-   VITE_API_URL=<your-production-backend-url>
+   VITE_API_URL=https://your-production-backend-url/api
    ```
 4. Deploy and monitor build logs
 
@@ -184,6 +184,7 @@ This frontend is deployed on Vercel at [https://finsaarthi-six.vercel.app/](http
 
 - Ensure backend API is publicly accessible and CORS-enabled
 - Update API base URL to match your production backend endpoint
+- The value must be a full absolute URL with protocol and `/api` suffix. Example: `https://finsaarthibackend-production.up.railway.app/api`
 - Verify all environment variables are set in Vercel dashboard
 - Test API connectivity from the deployed frontend
 
@@ -226,6 +227,7 @@ Manual testing checklist:
 ## Troubleshooting
 
 - **API connection errors**: Verify `VITE_API_URL` environment variable is correctly set and backend is running
+- **HTML returned from API requests**: This usually means the frontend hit the Vercel SPA fallback instead of the backend. Check that `VITE_API_URL` starts with `https://` and points to the backend `/api` base, not a relative path or bare hostname.
 - **Authentication failures**: Clear localStorage and re-login; check if JWT_SECRET on backend matches
 - **Document upload fails**: Ensure backend multipart form handling is configured and file size limits are adequate
 - **Blank admin dashboard**: Verify admin user role is properly set in database
